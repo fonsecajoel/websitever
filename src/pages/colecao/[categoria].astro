@@ -1,0 +1,91 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { products, categoryLabels, type ProductCategory } from '../../data/products';
+
+export function getStaticPaths() {
+  const cats: ProductCategory[] = ['scarpin', 'sandalia', 'tamanco', 'tenis', 'mule', 'bota', 'rasteira', 'bolsa'];
+  return [
+    { params: { categoria: 'novidades' }, props: { kind: 'novidades' as const } },
+    ...cats.map((c) => ({ params: { categoria: c }, props: { kind: 'category' as const, category: c } })),
+  ];
+}
+
+const { kind } = Astro.props;
+const category = Astro.props.kind === 'category' ? Astro.props.category : null;
+
+let list = products;
+let title = 'Novidades';
+let intro = 'As últimas peças que chegaram ao ateliê.';
+
+if (kind === 'novidades') {
+  list = products.filter((p) => p.isNew || p.badges?.includes('novo'));
+  title = 'Novidades';
+  intro = 'Recém-saídas do ateliê em Franca. As últimas peças da coleção Aurora.';
+} else if (category) {
+  list = products.filter((p) => p.category === category);
+  title = categoryLabels[category];
+  intro = `Toda a nossa seleção de ${title.toLowerCase()} — em couro brasileiro, feitos à mão.`;
+}
+---
+
+<BaseLayout title={`${title} — AURÉLIA`} description={intro}>
+  <section class="border-b border-taupe/20">
+    <div class="container-aurelia py-12 lg:py-20">
+      <nav class="text-xs text-mocha mb-6 flex items-center gap-2">
+        <a href="/" class="link-underline">Início</a>
+        <span>·</span>
+        <span class="text-cocoa">{title}</span>
+      </nav>
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+        <div>
+          <p class="eyebrow mb-3">Coleção</p>
+          <h1 class="display-lg text-balance max-w-2xl">{title}</h1>
+          <p class="mt-4 text-mocha max-w-xl text-pretty">{intro}</p>
+        </div>
+        <p class="eyebrow text-mocha">{list.length} {list.length === 1 ? 'peça' : 'peças'}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-aurelia py-12 lg:py-16">
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-10 pb-5 border-b border-taupe/20">
+      <div class="flex flex-wrap gap-2">
+        {['Todas', 'Novo', 'Best-seller', 'Edição limitada', 'Promoção'].map((f, i) => (
+          <button
+            class={`text-xs uppercase tracking-[0.18em] px-4 py-2 transition-all duration-300 border ${
+              i === 0 ? 'bg-cocoa text-bone border-cocoa' : 'border-taupe/40 text-cocoa hover:border-cocoa'
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+      <label class="inline-flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-cocoa">
+        Ordenar
+        <select class="bg-transparent border border-taupe/40 px-3 py-2 text-xs uppercase tracking-[0.18em] text-cocoa focus:outline-none focus:border-cocoa">
+          <option>Mais recentes</option>
+          <option>Menor preço</option>
+          <option>Maior preço</option>
+          <option>Mais vendidos</option>
+        </select>
+      </label>
+    </div>
+
+    {list.length === 0 ? (
+      <div class="py-32 text-center">
+        <p class="font-display text-3xl text-ink mb-4">Em breve, novas peças.</p>
+        <p class="text-mocha mb-8">Esta coleção está a ser preparada no ateliê.</p>
+        <a href="/" class="btn-ghost">Voltar ao início</a>
+      </div>
+    ) : (
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12 md:gap-x-6">
+        {list.map((p, i) => (
+          <div class="reveal" style={`transition-delay: ${(i % 4) * 60}ms`}>
+            <ProductCard product={p} priority={i < 4} />
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
+</BaseLayout>

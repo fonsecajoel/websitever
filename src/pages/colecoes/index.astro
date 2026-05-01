@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { collections } from '../../data/products';
+---
+
+<BaseLayout
+  title="Coleções — AURÉLIA"
+  description="Cinco coleções, uma só assinatura. Aurora, Heritage, Noir, Verão e Essentials."
+>
+  <section class="pt-32 pb-16 bg-cream">
+    <div class="container-aurelia text-center">
+      <p class="eyebrow mb-4">Coleções</p>
+      <h1 class="display-xl mb-6 text-balance">Cinco mundos. Uma só assinatura.</h1>
+      <p class="text-mocha max-w-2xl mx-auto leading-relaxed">
+        Cada coleção AURÉLIA nasce de um momento, uma cidade, uma mulher. Explore o universo que mais conversa consigo.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-24">
+    <div class="container-aurelia">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+        {Object.entries(collections).map(([key, col], i) => (
+          <a
+            href={`/colecoes/${key}`}
+            class={`reveal group relative overflow-hidden bg-cocoa block ${i === 0 ? 'md:col-span-2 aspect-[16/9]' : 'aspect-[4/5]'}`}
+            style={`transition-delay: ${i * 80}ms`}
+          >
+            <img
+              src={col.cover}
+              alt={col.name}
+              loading="lazy"
+              class="absolute inset-0 w-full h-full object-cover transition-transform duration-[1400ms] group-hover:scale-105"
+              style="transition-timing-function: var(--ease-silk);"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-cocoa/85 via-cocoa/20 to-transparent"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-8 md:p-12 text-bone">
+              <p class="eyebrow text-bone/80 mb-3">Coleção</p>
+              <h2 class="font-display text-4xl md:text-6xl mb-3" style="color: #F5EFE6;">{col.name}</h2>
+              <p class="font-display italic text-lg md:text-2xl text-bone/90">{col.tagline}</p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

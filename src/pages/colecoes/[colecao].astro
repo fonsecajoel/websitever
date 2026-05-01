@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { products, collections, type Collection } from '../../data/products';
+
+export function getStaticPaths() {
+  return Object.keys(collections).map((key) => ({ params: { colecao: key } }));
+}
+
+const { colecao } = Astro.params;
+const key = colecao as Collection;
+const col = collections[key];
+const items = products.filter((p) => p.collection === key);
+---
+
+<BaseLayout
+  title={`${col.name} — AURÉLIA`}
+  description={`${col.name}: ${col.tagline}. ${col.description}`}
+  image={col.cover}
+>
+  <section class="relative h-[70vh] min-h-[500px] overflow-hidden">
+    <img src={col.cover} alt={col.name} fetchpriority="high" class="absolute inset-0 w-full h-full object-cover" />
+    <div class="absolute inset-0 bg-gradient-to-t from-cocoa/80 via-cocoa/30 to-cocoa/40"></div>
+    <div class="relative h-full container-aurelia flex items-end pb-16 lg:pb-24">
+      <div class="text-bone max-w-2xl animate-fade-up">
+        <p class="eyebrow text-gold-soft mb-4">Coleção</p>
+        <h1 class="font-display text-6xl md:text-8xl mb-5 leading-none" style="color: #F5EFE6;">{col.name}</h1>
+        <p class="font-display italic text-2xl md:text-3xl text-bone/90 mb-6">{col.tagline}</p>
+        <p class="text-bone/85 max-w-xl leading-relaxed">{col.description}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-24">
+    <div class="container-aurelia">
+      <div class="reveal flex justify-between items-end mb-12">
+        <p class="eyebrow text-mocha">{items.length} {items.length === 1 ? 'peça' : 'peças'}</p>
+        <a href="/colecoes" class="eyebrow link-underline text-cocoa">Outras coleções</a>
+      </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12 md:gap-x-6">
+        {items.map((p, i) => (
+          <div class="reveal" style={`transition-delay: ${i * 60}ms`}>
+            <ProductCard product={p} priority={i < 4} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

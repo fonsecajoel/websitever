@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Página não encontrada — AURÉLIA" description="A página que procura não existe." noIndex>
+  <section class="min-h-[80vh] flex items-center justify-center text-center py-20">
+    <div class="container-narrow">
+      <p class="font-display text-9xl md:text-[12rem] text-cocoa/20 leading-none mb-4">404</p>
+      <p class="eyebrow mb-3">Caminho não encontrado</p>
+      <h1 class="display-md mb-6">Esta página perdeu-se no caminho.</h1>
+      <p class="text-mocha mb-8">Talvez prefira começar pela coleção mais recente.</p>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <a href="/" class="btn-primary">Página inicial</a>
+        <a href="/colecoes" class="btn-ghost">Ver coleções</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Minha Conta — AURÉLIA" description="Aceda à sua conta AURÉLIA." noIndex>
+  <section class="pt-32 pb-20 bg-bone min-h-[80vh]">
+    <div class="container-aurelia max-w-md">
+      <div class="text-center mb-10">
+        <p class="eyebrow mb-3">Bem-vinda</p>
+        <h1 class="display-md">Minha conta.</h1>
+      </div>
+      <form class="bg-cream p-8 space-y-5" id="login-form">
+        <label class="block">
+          <span class="text-xs uppercase tracking-[0.18em] text-mocha block mb-2">E-mail</span>
+          <input required type="email" class="w-full px-4 py-3 bg-white border border-taupe/30 focus:border-cocoa outline-none" />
+        </label>
+        <label class="block">
+          <span class="text-xs uppercase tracking-[0.18em] text-mocha block mb-2">Palavra-passe</span>
+          <input required type="password" class="w-full px-4 py-3 bg-white border border-taupe/30 focus:border-cocoa outline-none" />
+        </label>
+        <button type="submit" class="btn-primary w-full">Entrar</button>
+        <p class="text-center text-sm text-mocha">
+          Ainda não tem conta? <a href="#" class="link-underline text-cocoa">Crie agora</a>
+        </p>
+      </form>
+    </div>
+  </section>
+
+  <script>
+    document.getElementById('login-form')!.addEventListener('submit', (e) => {
+      e.preventDefault();
+      alert('Demo: autenticação simulada.');
+    });
+  </script>
+</BaseLayout>

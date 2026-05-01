@@ -1,0 +1,104 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const categories = [
+  {
+    label: 'Cintos',
+    href: '/colecao/cinto',
+    img: 'https://images.unsplash.com/photo-1624222247344-550fb60583dc?auto=format&fit=crop&w=900&q=80',
+    desc: 'Cintos femininos que completam qualquer look',
+  },
+  {
+    label: 'Bolsas',
+    href: '/colecao/bolsa',
+    img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=900&q=80',
+    desc: 'Da clutch ao shopper, para cada ocasião',
+  },
+  {
+    label: 'Carteiras',
+    href: '/colecao/carteira',
+    img: 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=900&q=80',
+    desc: 'Carteiras e porta-moedas com estilo',
+  },
+  {
+    label: 'Bijuterias',
+    href: '/colecao/bijuteria',
+    img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=900&q=80',
+    desc: 'Colares, brincos e pulseiras douradas',
+  },
+  {
+    label: 'Lenços & Xales',
+    href: '/colecao/lenco',
+    img: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=900&q=80',
+    desc: 'O toque final de elegância',
+  },
+  {
+    label: 'Óculos',
+    href: '/colecao/oculos',
+    img: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=900&q=80',
+    desc: 'Armações que enquadram a sua beleza',
+  },
+];
+---
+
+<BaseLayout
+  title="Acessórios | AURÉLIA Santo Santo — desde 2023"
+  description="Acessórios Santo Salto Store — cintos, bolsas, bijuterias e muito mais para completar o seu look com elegância e poder."
+>
+  <section class="pt-28 pb-10" style="background: linear-gradient(135deg, #FFF8F8 0%, #FAF0EE 100%);">
+    <div class="container-narrow text-center">
+      <p class="eyebrow mb-4" style="color: #C9A227;">Santo Salto Store</p>
+      <h1 class="display-xl text-balance mb-6" style="color: #C0392B;">Acessórios</h1>
+      <p class="text-lg text-mocha max-w-xl mx-auto font-light leading-relaxed">
+        Elevando mulheres com elegância e poder — os detalhes que transformam o look.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-24">
+    <div class="container-aurelia">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+        {categories.map((cat, i) => (
+          <a
+            href={cat.href}
+            class="reveal group relative aspect-[3/4] overflow-hidden block"
+            style={`transition-delay: ${i * 70}ms; background-color: #FAF0EE;`}
+          >
+            <img
+              src={cat.img}
+              alt={cat.label}
+              loading="lazy"
+              class="w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110"
+              style="transition-timing-function: var(--ease-silk);"
+            />
+            <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(192,57,43,0.75) 0%, rgba(192,57,43,0.1) 50%, transparent 100%);"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-5">
+              <p class="font-display text-2xl md:text-3xl leading-tight mb-1" style="color: #FFF8F8;">{cat.label}</p>
+              <p class="text-xs font-light" style="color: rgba(255,248,248,0.85);">{cat.desc}</p>
+            </div>
+            <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <span class="text-xs uppercase tracking-[0.2em] px-3 py-1.5 font-medium" style="background-color: #C9A227; color: #3D0604;">Ver →</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 text-bone" style="background-color: #C0392B;">
+    <div class="container-narrow text-center">
+      <div class="reveal">
+        <p class="eyebrow mb-6" style="color: #E2BC44;">Marca Própria</p>
+        <h2 class="font-display text-3xl md:text-5xl leading-[1.1] text-balance font-light mb-6" style="color: #FFF8F8;">
+          Elevando mulheres com elegância e poder.
+        </h2>
+        <p class="text-bone/85 max-w-lg mx-auto leading-relaxed mb-10 font-light" style="color: rgba(255,248,248,0.85);">
+          Os nossos acessórios são selecionados com o mesmo cuidado e rigor da nossa marca própria — para que cada detalhe eleve o seu look.
+        </p>
+        <a href="/sobre" class="inline-flex items-center gap-2 px-8 py-4 text-xs uppercase tracking-[0.2em] font-medium transition-all duration-500" style="background-color: #C9A227; color: #3D0604;">
+          Conheça a marca
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

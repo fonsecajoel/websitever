@@ -1,0 +1,239 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Checkout — AURÉLIA" description="Finalize a sua encomenda AURÉLIA." noIndex>
+  <section class="bg-bone min-h-screen py-12 lg:py-20">
+    <div class="container-aurelia max-w-6xl">
+      <div class="text-center mb-10">
+        <a href="/" class="font-display text-3xl tracking-[0.18em]">AURÉLIA</a>
+        <p class="eyebrow mt-3 text-mocha">Finalização segura</p>
+      </div>
+
+      <ol id="checkout-steps" class="flex justify-center gap-2 md:gap-8 mb-12 text-xs uppercase tracking-[0.18em] text-taupe">
+        <li data-step-label="1" class="flex items-center gap-2 step-active"><span class="step-dot">1</span> Identificação</li>
+        <li data-step-label="2" class="flex items-center gap-2"><span class="step-dot">2</span> Envio</li>
+        <li data-step-label="3" class="flex items-center gap-2"><span class="step-dot">3</span> Pagamento</li>
+        <li data-step-label="4" class="flex items-center gap-2"><span class="step-dot">4</span> Confirmação</li>
+      </ol>
+
+      <div class="grid lg:grid-cols-[1.3fr,1fr] gap-10 lg:gap-16">
+        <div>
+          <form id="checkout-form" class="space-y-10">
+            <fieldset data-step="1" class="step-panel">
+              <legend class="display-md mb-6">Identificação</legend>
+              <div class="grid sm:grid-cols-2 gap-4">
+                <label class="field"><span>Nome</span><input required name="firstName" type="text" /></label>
+                <label class="field"><span>Apelido</span><input required name="lastName" type="text" /></label>
+                <label class="field sm:col-span-2"><span>E-mail</span><input required name="email" type="email" /></label>
+                <label class="field sm:col-span-2"><span>CPF</span><input required name="cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" /></label>
+                <label class="field sm:col-span-2"><span>Telefone</span><input required name="phone" type="tel" placeholder="(11) 90000-0000" /></label>
+              </div>
+              <div class="mt-8 flex justify-end">
+                <button type="button" data-next class="btn-primary">Continuar para envio</button>
+              </div>
+            </fieldset>
+
+            <fieldset data-step="2" class="step-panel hidden">
+              <legend class="display-md mb-6">Endereço de envio</legend>
+              <div class="grid sm:grid-cols-2 gap-4">
+                <label class="field"><span>CEP</span><input required name="zip" type="text" inputmode="numeric" placeholder="00000-000" /></label>
+                <label class="field"><span>Estado</span><input required name="state" type="text" /></label>
+                <label class="field sm:col-span-2"><span>Endereço</span><input required name="address" type="text" /></label>
+                <label class="field"><span>Número</span><input required name="number" type="text" /></label>
+                <label class="field"><span>Complemento</span><input name="complement" type="text" /></label>
+                <label class="field"><span>Bairro</span><input required name="neighborhood" type="text" /></label>
+                <label class="field"><span>Cidade</span><input required name="city" type="text" /></label>
+              </div>
+
+              <div class="mt-8 space-y-3">
+                <p class="eyebrow text-mocha">Modalidade de envio</p>
+                <label class="ship-option"><input type="radio" name="shipping" value="standard" checked /><span><strong>Standard</strong> — 5 a 8 dias úteis · Grátis</span></label>
+                <label class="ship-option"><input type="radio" name="shipping" value="express" /><span><strong>Express</strong> — 2 a 3 dias úteis · R$ 49,90</span></label>
+                <label class="ship-option"><input type="radio" name="shipping" value="same-day" /><span><strong>Same-day SP</strong> — Hoje, capital · R$ 89,90</span></label>
+              </div>
+
+              <div class="mt-8 flex justify-between">
+                <button type="button" data-prev class="btn-ghost">Voltar</button>
+                <button type="button" data-next class="btn-primary">Continuar para pagamento</button>
+              </div>
+            </fieldset>
+
+            <fieldset data-step="3" class="step-panel hidden">
+              <legend class="display-md mb-6">Pagamento</legend>
+
+              <div class="space-y-3 mb-8">
+                <label class="ship-option"><input type="radio" name="payMethod" value="card" checked /><span><strong>Cartão de crédito</strong> — até 6x sem juros</span></label>
+                <label class="ship-option"><input type="radio" name="payMethod" value="pix" /><span><strong>PIX</strong> — 5% de desconto à vista</span></label>
+                <label class="ship-option"><input type="radio" name="payMethod" value="boleto" /><span><strong>Boleto bancário</strong> — vencimento em 3 dias</span></label>
+              </div>
+
+              <div data-card-fields class="grid sm:grid-cols-2 gap-4">
+                <label class="field sm:col-span-2"><span>Número do cartão</span><input name="cardNumber" type="text" inputmode="numeric" placeholder="0000 0000 0000 0000" autocomplete="cc-number" /></label>
+                <label class="field sm:col-span-2"><span>Nome impresso</span><input name="cardName" type="text" autocomplete="cc-name" /></label>
+                <label class="field"><span>Validade</span><input name="cardExp" type="text" placeholder="MM/AA" autocomplete="cc-exp" /></label>
+                <label class="field"><span>CVV</span><input name="cardCvv" type="text" inputmode="numeric" placeholder="000" autocomplete="cc-csc" /></label>
+                <label class="field sm:col-span-2"><span>Parcelas</span>
+                  <select name="installments">
+                    <option>1x à vista</option><option>2x sem juros</option><option>3x sem juros</option>
+                    <option>4x sem juros</option><option>5x sem juros</option><option>6x sem juros</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="mt-8 flex justify-between">
+                <button type="button" data-prev class="btn-ghost">Voltar</button>
+                <button type="submit" class="btn-primary">Finalizar pedido</button>
+              </div>
+            </fieldset>
+
+            <fieldset data-step="4" class="step-panel hidden text-center py-12">
+              <div class="w-16 h-16 mx-auto mb-6 border border-gold rounded-full flex items-center justify-center">
+                <svg viewBox="0 0 24 24" class="w-8 h-8 text-gold" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <p class="eyebrow mb-3 text-gold">Pedido confirmado</p>
+              <h2 class="display-md mb-4">Obrigado, <span data-confirm-name>cliente</span>.</h2>
+              <p class="text-mocha max-w-md mx-auto mb-8">
+                Enviamos um e-mail com o número do pedido <strong data-order-id>—</strong> e o resumo da encomenda. O seu par será preparado com cuidado no nosso ateliê.
+              </p>
+              <a href="/" class="btn-ghost">Voltar à página inicial</a>
+            </fieldset>
+          </form>
+        </div>
+
+        <aside class="lg:sticky lg:top-32 self-start bg-cream p-6 lg:p-8 border border-taupe/15">
+          <p class="eyebrow mb-4 text-mocha">Resumo do pedido</p>
+          <ul id="checkout-items" class="space-y-4 mb-6"></ul>
+          <div id="checkout-empty" class="hidden text-center py-10">
+            <p class="text-mocha mb-4">O seu carrinho está vazio.</p>
+            <a href="/" class="btn-ghost">Continuar a comprar</a>
+          </div>
+          <dl class="space-y-2 text-sm border-t border-taupe/20 pt-4">
+            <div class="flex justify-between"><dt>Subtotal</dt><dd data-subtotal>R$ 0,00</dd></div>
+            <div class="flex justify-between text-mocha"><dt>Envio</dt><dd data-shipping>Grátis</dd></div>
+            <div class="flex justify-between font-display text-xl pt-3 border-t border-taupe/20 mt-3"><dt>Total</dt><dd data-total>R$ 0,00</dd></div>
+          </dl>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .step-panel legend { padding: 0; }
+    .field { display: block; }
+    .field span { display: block; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-mocha); margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%; padding: 14px 16px; background: white;
+      border: 1px solid rgb(168 152 132 / 0.3); font-family: inherit; font-size: 15px; color: var(--color-ink);
+      transition: border-color 0.3s var(--ease-silk);
+    }
+    .field input:focus, .field select:focus { outline: none; border-color: var(--color-cocoa); }
+    .ship-option {
+      display: flex; align-items: center; gap: 14px; padding: 16px 18px;
+      border: 1px solid rgb(168 152 132 / 0.3); cursor: pointer;
+      transition: border-color 0.3s var(--ease-silk), background 0.3s var(--ease-silk);
+    }
+    .ship-option:has(input:checked) { border-color: var(--color-cocoa); background: var(--color-cream); }
+    .ship-option input { accent-color: var(--color-cocoa); }
+    .step-dot {
+      width: 26px; height: 26px; border-radius: 50%; border: 1px solid currentColor;
+      display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
+    }
+    #checkout-steps li.step-active { color: var(--color-cocoa); }
+    #checkout-steps li.step-active .step-dot { background: var(--color-cocoa); color: var(--color-bone); border-color: var(--color-cocoa); }
+  </style>
+
+  <script>
+    import { cartItems, cartSubtotal } from '../../stores/cart';
+    import { products, formatBRL } from '../../data/products';
+
+    const stepPanels = document.querySelectorAll<HTMLFieldSetElement>('[data-step]');
+    const stepLabels = document.querySelectorAll<HTMLLIElement>('[data-step-label]');
+    let currentStep = 1;
+
+    function showStep(n: number) {
+      currentStep = n;
+      stepPanels.forEach((p) => p.classList.toggle('hidden', Number(p.dataset.step) !== n));
+      stepLabels.forEach((l) => l.classList.toggle('step-active', Number(l.dataset.stepLabel) <= n));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.querySelectorAll('[data-next]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const panel = stepPanels[currentStep - 1];
+        const inputs = panel.querySelectorAll<HTMLInputElement>('input[required]');
+        for (const input of inputs) {
+          if (!input.checkValidity()) { input.reportValidity(); return; }
+        }
+        showStep(currentStep + 1);
+      }),
+    );
+
+    document.querySelectorAll('[data-prev]').forEach((btn) =>
+      btn.addEventListener('click', () => showStep(currentStep - 1)),
+    );
+
+    const itemsEl = document.getElementById('checkout-items')!;
+    const emptyEl = document.getElementById('checkout-empty')!;
+    const subtotalEl = document.querySelector('[data-subtotal]')!;
+    const shippingEl = document.querySelector('[data-shipping]')!;
+    const totalEl = document.querySelector('[data-total]')!;
+
+    function renderSummary() {
+      const items = cartItems.get();
+      if (items.length === 0) {
+        itemsEl.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+      } else {
+        emptyEl.classList.add('hidden');
+        itemsEl.innerHTML = items.map((item) => {
+          const p = products.find((pr) => pr.id === item.productId);
+          if (!p) return '';
+          return `
+            <li class="flex gap-3 text-sm">
+              <img src="${p.images[0].src}" alt="" class="w-16 h-20 object-cover bg-bone" />
+              <div class="flex-1">
+                <p class="font-display text-base leading-tight">${p.name}</p>
+                <p class="text-xs text-mocha mt-1">${item.color} · ${item.size} · Qtd ${item.quantity}</p>
+              </div>
+              <p class="text-sm">${formatBRL(p.price * item.quantity)}</p>
+            </li>`;
+        }).join('');
+      }
+
+      const sub = cartSubtotal.get();
+      const shipMethod = (document.querySelector<HTMLInputElement>('input[name="shipping"]:checked')?.value) ?? 'standard';
+      const shipCost = shipMethod === 'express' ? 49.9 : shipMethod === 'same-day' ? 89.9 : 0;
+      subtotalEl.textContent = formatBRL(sub);
+      shippingEl.textContent = shipCost === 0 ? 'Grátis' : formatBRL(shipCost);
+      totalEl.textContent = formatBRL(sub + shipCost);
+    }
+
+    renderSummary();
+    cartItems.subscribe(renderSummary);
+    document.querySelectorAll('input[name="shipping"]').forEach((r) =>
+      r.addEventListener('change', renderSummary),
+    );
+
+    const cardFields = document.querySelector<HTMLDivElement>('[data-card-fields]')!;
+    document.querySelectorAll('input[name="payMethod"]').forEach((r) =>
+      r.addEventListener('change', (e) => {
+        const v = (e.target as HTMLInputElement).value;
+        cardFields.style.display = v === 'card' ? 'grid' : 'none';
+      }),
+    );
+
+    document.getElementById('checkout-form')!.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const fd = new FormData(form);
+      const orderId = 'AUR-' + Date.now().toString().slice(-8);
+      document.querySelector('[data-confirm-name]')!.textContent = (fd.get('firstName') as string) || 'cliente';
+      document.querySelector('[data-order-id]')!.textContent = orderId;
+      cartItems.set([]);
+      showStep(4);
+    });
+  </script>
+</BaseLayout>

@@ -1,0 +1,158 @@
+---
+import { categoryLabels } from '../data/products';
+import { cartCount } from '../stores/cart';
+
+const navItems = [
+  { label: 'Novidades', href: '/colecao/novidades' },
+  { label: 'Saltos', href: '/colecao/scarpin' },
+  { label: 'Sandálias', href: '/colecao/sandalia' },
+  { label: 'Tamancos', href: '/colecao/tamanco' },
+  { label: 'Tênis', href: '/colecao/tenis' },
+  { label: 'Botas', href: '/colecao/bota' },
+  { label: 'Bolsas', href: '/colecao/bolsa' },
+  { label: 'Acessórios', href: '/acessorios' },
+  { label: 'Edições', href: '/colecoes' },
+];
+---
+
+<div id="announcement" class="text-bone text-[11px] uppercase tracking-[0.28em] text-center py-2.5 overflow-hidden" style="background-color: #C0392B;">
+  <div class="flex animate-marquee whitespace-nowrap gap-16">
+    {Array.from({ length: 2 }).map(() => (
+      <div class="flex gap-16 shrink-0">
+        <span>Frete grátis acima de R$ 499</span>
+        <span>· Parcelamos em até 6x sem juros ·</span>
+        <span>Troca grátis em 30 dias</span>
+        <span>· Atendimento via WhatsApp ·</span>
+        <span>Santo Salto Store — Marca Própria</span>
+        <span>· Elevando mulheres com elegância e poder ·</span>
+      </div>
+    ))}
+  </div>
+</div>
+
+<header
+  id="site-header"
+  class="sticky top-0 z-40 backdrop-blur-md border-b transition-all duration-500"
+  style="background-color: rgba(255,248,248,0.97); border-color: rgba(192,57,43,0.2);"
+>
+  <div class="container-aurelia">
+    <div class="grid grid-cols-3 items-center h-20 lg:h-24">
+      <div class="flex items-center gap-6">
+        <button
+          id="menu-toggle"
+          class="lg:hidden"
+          style="color: #C0392B;"
+          aria-label="Abrir menu"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <button class="hidden lg:flex items-center gap-2 text-xs uppercase tracking-[0.2em] link-underline" style="color: #C0392B;" aria-label="Pesquisar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.5" y2="16.5" />
+          </svg>
+          Pesquisar
+        </button>
+      </div>
+
+      <a href="/" class="text-center group" aria-label="Santo Salto Store — Página inicial">
+        <img src="/logo-sem-fundo.png" alt="Santo Salto Store" class="h-14 md:h-16 mx-auto object-contain" />
+        <span class="block eyebrow mt-1 text-[9px] tracking-[0.4em]" style="color: #C9A227;">Desde 2023</span>
+      </a>
+
+      <div class="flex items-center justify-end gap-5" style="color: #C0392B;">
+        <a href="/conta" class="hidden md:inline-flex items-center text-xs uppercase tracking-[0.2em] link-underline" style="color: #C0392B;">Conta</a>
+        <a href="/lista-desejos" class="hidden md:inline-flex" aria-label="Lista de desejos" style="color: #C0392B;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+          </svg>
+        </a>
+        <button id="cart-toggle" class="relative inline-flex items-center gap-2" aria-label="Abrir sacola" style="color: #C0392B;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M5 7h14l-1.5 12.5a2 2 0 01-2 1.5h-7a2 2 0 01-2-1.5L5 7z" />
+            <path d="M9 7V5a3 3 0 016 0v2" />
+          </svg>
+          <span class="hidden md:inline text-xs uppercase tracking-[0.2em]">Sacola</span>
+          <span
+            id="cart-count"
+            class="absolute -top-1.5 -right-1.5 md:static md:ml-1 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[10px] font-medium rounded-full"
+            style="background-color: #C0392B; color: #FFF8F8;"
+          >0</span>
+        </button>
+      </div>
+    </div>
+
+    <nav class="hidden lg:flex items-center justify-center gap-8 pb-4 -mt-1">
+      {navItems.map((item) => (
+        <a
+          href={item.href}
+          class="eyebrow hover:opacity-80 link-underline transition-colors"
+          style={item.label === 'Acessórios' ? 'color: #C9A227; font-weight: 600;' : 'color: #C0392B;'}
+        >
+          {item.label}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>
+
+<div
+  id="mobile-menu"
+  class="fixed inset-0 z-50 translate-x-[-100%] transition-transform duration-500 lg:hidden"
+  style="background-color: #FFF8F8; transition-timing-function: var(--ease-silk);"
+>
+  <div class="flex items-center justify-between px-6 h-20 border-b" style="border-color: rgba(192,57,43,0.2);">
+    <img src="/logo-sem-fundo.png" alt="Santo Salto Store" class="h-12 object-contain" />
+    <button id="menu-close" aria-label="Fechar menu" style="color: #C0392B;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <line x1="6" y1="6" x2="18" y2="18" />
+        <line x1="18" y1="6" x2="6" y2="18" />
+      </svg>
+    </button>
+  </div>
+  <nav class="px-8 py-12 space-y-6">
+    {navItems.map((item) => (
+      <a href={item.href} class="block font-display text-3xl" style="color: #3D0604;">{item.label}</a>
+    ))}
+  </nav>
+  <div class="absolute bottom-12 left-8 right-8 space-y-3">
+    <a href="/conta" class="block eyebrow" style="color: #C0392B;">Minha conta</a>
+    <a href="/contato" class="block eyebrow" style="color: #C0392B;">Contato</a>
+    <a href="/sobre" class="block eyebrow" style="color: #C0392B;">Sobre a marca</a>
+  </div>
+</div>
+
+<script>
+  import { cartCount, cartOpen } from '../stores/cart';
+
+  const headerEl = document.getElementById('site-header');
+  let lastY = 0;
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    if (!headerEl) return;
+    if (y > 80) headerEl.classList.add('shadow-soft');
+    else headerEl.classList.remove('shadow-soft');
+    lastY = y;
+  });
+
+  const menuToggle = document.getElementById('menu-toggle');
+  const menuClose = document.getElementById('menu-close');
+  const mobileMenu = document.getElementById('mobile-menu');
+  menuToggle?.addEventListener('click', () => mobileMenu?.classList.remove('translate-x-[-100%]'));
+  menuClose?.addEventListener('click', () => mobileMenu?.classList.add('translate-x-[-100%]'));
+
+  document.getElementById('cart-toggle')?.addEventListener('click', () => cartOpen.set(true));
+
+  const countEl = document.getElementById('cart-count');
+  const updateCount = (n: number) => {
+    if (!countEl) return;
+    countEl.textContent = String(n);
+    countEl.style.opacity = n > 0 ? '1' : '0.5';
+  };
+  updateCount(cartCount.get());
+  cartCount.subscribe(updateCount);
+</script>

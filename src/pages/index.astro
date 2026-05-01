@@ -1,0 +1,304 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { products, collections } from '../data/products';
+
+const heroImage = 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=2400&q=85';
+const editorialImage = 'https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=1800&q=85';
+const atelierImage = 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=1800&q=85';
+
+const novidades = products.filter((p) => p.isNew).slice(0, 4);
+const bestSellers = products.filter((p) => p.badges?.includes('best-seller')).slice(0, 4);
+const heritagePieces = products.filter((p) => p.collection === 'heritage').slice(0, 3);
+
+const categoryShowcase = [
+  { label: 'Saltos', href: '/colecao/scarpin', img: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=900&q=80' },
+  { label: 'Sandálias', href: '/colecao/sandalia', img: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=900&q=80' },
+  { label: 'Tamancos', href: '/colecao/tamanco', img: 'https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=900&q=80' },
+  { label: 'Tênis', href: '/colecao/tenis', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80' },
+  { label: 'Botas', href: '/colecao/bota', img: 'https://images.unsplash.com/photo-1605812860427-4024433a70fd?auto=format&fit=crop&w=900&q=80' },
+  { label: 'Bolsas', href: '/colecao/bolsa', img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=900&q=80' },
+];
+
+const testimonials = [
+  { quote: 'A qualidade do couro e o conforto do salto são incomparáveis. Uso o Aurora há um ano e parece novo.', author: 'Beatriz M.', city: 'São Paulo' },
+  { quote: 'Recebi a Sandália Celeste embalada como uma joia. A entrega impecável combina com o produto.', author: 'Mariana L.', city: 'Lisboa' },
+  { quote: 'Cada peça da Aurélia tem alma. Sente-se o trabalho dos artesãos em cada detalhe.', author: 'Renata C.', city: 'Belo Horizonte' },
+];
+---
+
+<BaseLayout
+  title="AURÉLIA Santo Santo — desde 2023"
+  description="Santo Salto Store — calçado feminino com marca própria. Saltos, sandálias, tamancos e acessórios. Elevando mulheres com elegância e poder."
+  image={heroImage}
+>
+  <section class="relative h-[88vh] min-h-[640px] max-h-[900px] overflow-hidden">
+    <div class="absolute inset-0">
+      <img
+        src={heroImage}
+        alt="Sapatos AURÉLIA — Coleção Aurora"
+        fetchpriority="high"
+        class="w-full h-full object-cover scale-105 animate-float"
+      />
+      <div class="absolute inset-0 bg-gradient-to-b from-cocoa/20 via-cocoa/10 to-bone/40"></div>
+      <div class="absolute inset-0 bg-gradient-to-r from-cocoa/30 via-transparent to-transparent"></div>
+    </div>
+
+    <div class="relative h-full container-aurelia flex items-end pb-20 lg:pb-32">
+      <div class="max-w-2xl text-bone animate-fade-up">
+        <p class="eyebrow text-bone/85 mb-6">Coleção Aurora · Outono–Inverno</p>
+        <h1 class="display-xl text-balance mb-8" style="color: #F5EFE6;">
+          Passos com<br/><em class="italic font-light">história.</em>
+        </h1>
+        <p class="text-lg md:text-xl text-bone/90 max-w-xl mb-10 leading-relaxed font-light">
+          Elevando mulheres com elegância e poder — marca própria e multimarcas selecionadas.
+        </p>
+        <div class="flex flex-wrap gap-4">
+          <a href="/colecao/novidades" class="btn-primary" style="background-color: #F5EFE6; color: #2E1F15;">
+            Ver coleção Aurora
+          </a>
+          <a href="/atelier" class="btn-ghost" style="border-color: #F5EFE6; color: #F5EFE6;">
+            Conheça a marca própria
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-bone/80 flex flex-col items-center gap-2">
+      <span class="text-[10px] uppercase tracking-[0.4em]">Descubra</span>
+      <div class="w-px h-12 bg-bone/60 animate-pulse"></div>
+    </div>
+  </section>
+
+  <section class="py-20 lg:py-28">
+    <div class="container-aurelia">
+      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <div>
+          <p class="eyebrow mb-3">Por categoria</p>
+          <h2 class="display-md text-balance">Encontre o seu próximo par.</h2>
+        </div>
+        <a href="/colecoes" class="eyebrow text-cocoa link-underline">Ver tudo</a>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+        {categoryShowcase.map((cat, i) => (
+          <a
+            href={cat.href}
+            class="reveal group relative aspect-[3/4] overflow-hidden bg-cream block"
+            style={`transition-delay: ${i * 60}ms`}
+          >
+            <img
+              src={cat.img}
+              alt={cat.label}
+              loading="lazy"
+              class="w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110"
+              style="transition-timing-function: var(--ease-silk);"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-cocoa/60 via-cocoa/0 to-transparent"></div>
+            <div class="absolute bottom-4 left-4 right-4">
+              <p class="font-display text-xl md:text-2xl text-bone leading-tight">{cat.label}</p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 lg:py-28 bg-cream">
+    <div class="container-aurelia">
+      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <div>
+          <p class="eyebrow mb-3">Recém-chegados</p>
+          <h2 class="display-md text-balance max-w-xl">Novidades que pedem para serem usadas hoje.</h2>
+        </div>
+        <a href="/colecao/novidades" class="eyebrow text-cocoa link-underline">Explorar novidades</a>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12 md:gap-x-6">
+        {novidades.map((p, i) => (
+          <div class="reveal" style={`transition-delay: ${i * 80}ms`}>
+            <ProductCard product={p} priority={i < 2} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="relative min-h-[80vh] grid lg:grid-cols-2 overflow-hidden">
+    <div class="relative bg-cocoa text-bone flex items-center px-8 md:px-16 lg:px-24 py-20 lg:py-32 order-2 lg:order-1">
+      <div class="reveal max-w-md">
+        <p class="eyebrow text-gold-soft mb-5">Editorial · 02</p>
+        <h2 class="font-display text-4xl md:text-5xl lg:text-6xl leading-[1.05] mb-7 text-balance" style="color: #F5EFE6;">
+          A trama que conta uma história.
+        </h2>
+        <p class="text-bone/85 leading-relaxed mb-8 text-pretty">
+          A nossa marca própria nasce da paixão pela moda feminina e da escolha criteriosa de cada peça.
+          Cada par da Coleção Heritage carrega a identidade Santo Salto — e dura uma vida inteira.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a href="/colecoes/heritage" class="btn-ghost" style="border-color: #F5EFE6; color: #F5EFE6;">
+            Coleção Heritage
+          </a>
+          <a href="/sobre" class="text-xs uppercase tracking-[0.2em] py-4 link-underline" style="color: #D4B27A;">
+            Sobre a nossa marca própria
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="relative h-[60vh] lg:h-auto order-1 lg:order-2 overflow-hidden">
+      <img
+        src={editorialImage}
+        alt="Trabalho artesanal em couro — Coleção Heritage"
+        loading="lazy"
+        class="absolute inset-0 w-full h-full object-cover"
+      />
+    </div>
+  </section>
+
+  <section class="py-20 lg:py-28">
+    <div class="container-aurelia">
+      <div class="reveal text-center mb-14">
+        <p class="eyebrow mb-3">Mais amados</p>
+        <h2 class="display-md text-balance max-w-2xl mx-auto">Os clássicos que não saem do lugar — porque são essenciais.</h2>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12 md:gap-x-6">
+        {bestSellers.map((p, i) => (
+          <div class="reveal" style={`transition-delay: ${i * 80}ms`}>
+            <ProductCard product={p} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 lg:py-28 bg-cream">
+    <div class="container-aurelia">
+      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
+        <div>
+          <p class="eyebrow mb-3">Coleções</p>
+          <h2 class="display-md text-balance max-w-xl">Cinco mundos. Uma só assinatura.</h2>
+        </div>
+        <a href="/colecoes" class="eyebrow text-cocoa link-underline">Ver todas</a>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+        {Object.entries(collections).map(([key, col], i) => (
+          <a
+            href={`/colecoes/${key}`}
+            class="reveal group relative aspect-[3/4] overflow-hidden block bg-cocoa"
+            style={`transition-delay: ${i * 80}ms`}
+          >
+            <img
+              src={col.cover}
+              alt={col.name}
+              loading="lazy"
+              class="absolute inset-0 w-full h-full object-cover opacity-90 transition-all duration-[1200ms] group-hover:scale-110 group-hover:opacity-100"
+              style="transition-timing-function: var(--ease-silk);"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-cocoa/85 via-cocoa/30 to-transparent"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-6 text-bone">
+              <p class="eyebrow text-bone/80 mb-2">Coleção</p>
+              <h3 class="font-display text-3xl mb-2" style="color: #F5EFE6;">{col.name}</h3>
+              <p class="text-sm text-bone/85 italic font-display">{col.tagline}</p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24 lg:py-32 relative overflow-hidden">
+    <div class="container-narrow text-center">
+      <div class="reveal">
+        <p class="eyebrow mb-6">Manifesto</p>
+        <p class="font-display text-3xl md:text-5xl lg:text-6xl leading-[1.15] text-balance text-ink italic font-light">
+          Elevando mulheres com elegância e poder.
+        </p>
+        <p class="eyebrow mt-10 text-mocha">— Santo Salto Store, desde 2023</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="relative grid lg:grid-cols-5 min-h-[80vh] overflow-hidden">
+    <div class="relative h-[60vh] lg:h-auto lg:col-span-3">
+      <img
+        src={atelierImage}
+        alt="Ateliê AURÉLIA em Franca-SP"
+        loading="lazy"
+        class="absolute inset-0 w-full h-full object-cover"
+      />
+    </div>
+    <div class="relative bg-bone flex items-center px-8 md:px-16 lg:px-20 py-20 lg:col-span-2">
+      <div class="reveal">
+        <p class="eyebrow mb-5">Marca Própria</p>
+        <h2 class="display-md mb-6 text-balance">Onde nasce cada peça.</h2>
+        <p class="text-mocha leading-relaxed mb-8 text-pretty">
+          A Santo Salto Store tem marca própria cuidadosamente desenvolvida — sem fabricação própria, mas com design, identidade e qualidade que são 100% nossos.
+          Cada peça reflete a nossa assinatura: elegância e poder para a mulher moderna.
+        </p>
+        <ul class="space-y-3 mb-8 text-sm text-cocoa">
+          <li class="flex gap-3"><span class="text-gold">·</span> Marca própria com identidade exclusiva</li>
+          <li class="flex gap-3"><span class="text-gold">·</span> Multimarcas selecionadas com critério</li>
+          <li class="flex gap-3"><span class="text-gold">·</span> Qualidade e elegância em cada detalhe</li>
+          <li class="flex gap-3"><span class="text-gold">·</span> Atendimento personalizado via WhatsApp</li>
+        </ul>
+        <a href="/sobre" class="btn-primary">Conheça a marca</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 lg:py-28">
+    <div class="container-aurelia">
+      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
+        <div>
+          <p class="eyebrow mb-3">Heritage</p>
+          <h2 class="display-md text-balance max-w-xl">Peças trançadas à mão. Edição limitada.</h2>
+        </div>
+        <a href="/colecoes/heritage" class="eyebrow text-cocoa link-underline">Ver coleção completa</a>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-12 md:gap-x-6">
+        {heritagePieces.map((p, i) => (
+          <div class="reveal" style={`transition-delay: ${i * 100}ms`}>
+            <ProductCard product={p} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 lg:py-28 bg-cocoa text-bone">
+    <div class="container-aurelia">
+      <p class="eyebrow text-gold-soft text-center mb-12">Quem usa, fica</p>
+      <div class="grid md:grid-cols-3 gap-10 lg:gap-16">
+        {testimonials.map((t, i) => (
+          <blockquote class="reveal" style={`transition-delay: ${i * 100}ms`}>
+            <p class="font-display text-2xl md:text-[1.7rem] leading-snug text-balance mb-6" style="color: #F5EFE6;">
+              {t.quote}
+            </p>
+            <footer class="eyebrow text-gold-soft">
+              {t.author} <span class="text-bone/50">· {t.city}</span>
+            </footer>
+          </blockquote>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 border-t border-taupe/20">
+    <div class="container-aurelia grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 text-center">
+      {[
+        { t: 'Frete grátis', s: 'A partir de R$ 499' },
+        { t: 'Parcelamento', s: 'Até 6x sem juros' },
+        { t: 'Trocas grátis', s: '30 dias para trocar' },
+        { t: 'Reparos vitalícios', s: 'Cuidamos do seu par' },
+      ].map((b) => (
+        <div>
+          <p class="font-display text-xl md:text-2xl text-ink mb-1">{b.t}</p>
+          <p class="text-xs text-mocha uppercase tracking-[0.18em]">{b.s}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

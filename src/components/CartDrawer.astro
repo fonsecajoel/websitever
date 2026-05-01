@@ -1,0 +1,162 @@
+---
+import { formatBRL } from '../data/products';
+---
+
+<div
+  id="cart-overlay"
+  class="fixed inset-0 bg-cocoa/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-500 z-50"
+></div>
+
+<aside
+  id="cart-drawer"
+  class="fixed top-0 right-0 h-full w-full sm:w-[440px] bg-bone shadow-2xl translate-x-full transition-transform duration-500 z-50 flex flex-col"
+  style="transition-timing-function: var(--ease-silk);"
+  aria-label="Sacola de compras"
+>
+  <div class="flex items-center justify-between px-7 h-20 border-b border-taupe/25">
+    <div>
+      <h2 class="font-display text-2xl text-ink leading-none">Sua sacola</h2>
+      <p id="cart-summary" class="eyebrow mt-1.5 text-mocha">0 peças</p>
+    </div>
+    <button id="cart-close" aria-label="Fechar sacola" class="text-cocoa hover:text-ink">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <line x1="6" y1="6" x2="18" y2="18" />
+        <line x1="18" y1="6" x2="6" y2="18" />
+      </svg>
+    </button>
+  </div>
+
+  <div id="cart-empty" class="flex-1 flex flex-col items-center justify-center px-8 text-center hidden">
+    <div class="w-16 h-16 rounded-full border border-taupe/40 flex items-center justify-center mb-6">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="text-mocha">
+        <path d="M5 7h14l-1.5 12.5a2 2 0 01-2 1.5h-7a2 2 0 01-2-1.5L5 7z" />
+        <path d="M9 7V5a3 3 0 016 0v2" />
+      </svg>
+    </div>
+    <p class="font-display text-2xl text-ink mb-3">A sua sacola aguarda</p>
+    <p class="text-sm text-mocha mb-8 max-w-[28ch]">
+      Explore as nossas coleções e encontre a peça que vai contar a sua próxima história.
+    </p>
+    <a href="/colecoes" class="btn-primary">Descobrir coleções</a>
+  </div>
+
+  <div id="cart-items" class="flex-1 overflow-y-auto px-7 py-6 space-y-6"></div>
+
+  <div id="cart-footer" class="border-t border-taupe/25 px-7 py-6 space-y-5 hidden">
+    <div class="flex items-center justify-between text-sm">
+      <span class="text-mocha">Subtotal</span>
+      <span id="cart-subtotal" class="font-display text-xl text-ink">R$ 0,00</span>
+    </div>
+    <div class="flex items-center justify-between text-xs text-mocha">
+      <span>Frete</span>
+      <span>Calculado no checkout</span>
+    </div>
+    <a href="/checkout" class="btn-primary w-full">Finalizar compra</a>
+    <button id="cart-continue" class="w-full text-xs uppercase tracking-[0.2em] text-mocha hover:text-cocoa">
+      Continuar comprando
+    </button>
+  </div>
+</aside>
+
+<script>
+  import { cartItems, cartOpen, cartSubtotal, cartCount, removeFromCart, updateQuantity, closeCart } from '../stores/cart';
+
+  const formatBRL = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+  const overlay = document.getElementById('cart-overlay');
+  const drawer = document.getElementById('cart-drawer');
+  const close = document.getElementById('cart-close');
+  const emptyEl = document.getElementById('cart-empty');
+  const itemsEl = document.getElementById('cart-items');
+  const footerEl = document.getElementById('cart-footer');
+  const summaryEl = document.getElementById('cart-summary');
+  const subtotalEl = document.getElementById('cart-subtotal');
+  const continueBtn = document.getElementById('cart-continue');
+
+  function setOpen(open: boolean) {
+    if (!drawer || !overlay) return;
+    if (open) {
+      drawer.classList.remove('translate-x-full');
+      overlay.classList.remove('opacity-0', 'pointer-events-none');
+      document.body.style.overflow = 'hidden';
+    } else {
+      drawer.classList.add('translate-x-full');
+      overlay.classList.add('opacity-0', 'pointer-events-none');
+      document.body.style.overflow = '';
+    }
+  }
+
+  cartOpen.subscribe(setOpen);
+  close?.addEventListener('click', () => closeCart());
+  overlay?.addEventListener('click', () => closeCart());
+  continueBtn?.addEventListener('click', () => closeCart());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeCart();
+  });
+
+  function render() {
+    const items = cartItems.get();
+    if (!itemsEl || !emptyEl || !footerEl || !summaryEl || !subtotalEl) return;
+
+    summaryEl.textContent = `${cartCount.get()} ${cartCount.get() === 1 ? 'peça' : 'peças'}`;
+    subtotalEl.textContent = formatBRL(cartSubtotal.get());
+
+    if (items.length === 0) {
+      emptyEl.classList.remove('hidden');
+      itemsEl.classList.add('hidden');
+      footerEl.classList.add('hidden');
+      return;
+    }
+
+    emptyEl.classList.add('hidden');
+    itemsEl.classList.remove('hidden');
+    footerEl.classList.remove('hidden');
+
+    itemsEl.innerHTML = items
+      .map(
+        (item) => `
+        <article class="flex gap-4 group" data-id="${item.id}">
+          <a href="/produto/${item.slug}" class="block w-24 h-32 bg-cream overflow-hidden shrink-0">
+            <img src="${item.image}" alt="${item.name}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          </a>
+          <div class="flex-1 flex flex-col">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <a href="/produto/${item.slug}" class="font-display text-lg text-ink leading-tight">${item.name}</a>
+                <p class="text-xs text-mocha mt-1">${item.color} · Tam ${item.size}</p>
+              </div>
+              <button data-remove="${item.id}" aria-label="Remover" class="text-mocha hover:text-ink">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="mt-auto flex items-center justify-between">
+              <div class="inline-flex items-center border border-taupe/40">
+                <button data-qty="${item.id}" data-delta="-1" class="w-8 h-8 text-mocha hover:text-ink">−</button>
+                <span class="w-8 text-center text-sm">${item.quantity}</span>
+                <button data-qty="${item.id}" data-delta="1" class="w-8 h-8 text-mocha hover:text-ink">+</button>
+              </div>
+              <span class="font-display text-lg text-ink">${formatBRL(item.price * item.quantity)}</span>
+            </div>
+          </div>
+        </article>
+      `
+      )
+      .join('');
+
+    itemsEl.querySelectorAll<HTMLButtonElement>('[data-remove]').forEach((btn) => {
+      btn.addEventListener('click', () => removeFromCart(btn.dataset.remove!));
+    });
+    itemsEl.querySelectorAll<HTMLButtonElement>('[data-qty]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.qty!;
+        const delta = parseInt(btn.dataset.delta!, 10);
+        const item = cartItems.get().find((i) => i.id === id);
+        if (item) updateQuantity(id, item.quantity + delta);
+      });
+    });
+  }
+
+  render();
+  cartItems.subscribe(render);
+</script>

@@ -1,0 +1,271 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { products, getProductBySlug, getRelatedProducts, formatBRL } from '../../data/products';
+
+export function getStaticPaths() {
+  return products.map((p) => ({ params: { slug: p.slug }, props: { product: p } }));
+}
+
+const { product } = Astro.props;
+const related = getRelatedProducts(product, 4);
+const hasDiscount = product.oldPrice && product.oldPrice > product.price;
+const installment = (product.price / 6).toFixed(2).replace('.', ',');
+---
+
+<BaseLayout
+  title={`${product.name} — AURÉLIA`}
+  description={product.shortDescription}
+  image={product.images[0].src}
+>
+  <div class="container-aurelia pt-6 pb-2">
+    <nav class="text-xs text-mocha flex items-center gap-2">
+      <a href="/" class="link-underline">Início</a>
+      <span>·</span>
+      <a href={`/colecao/${product.category}`} class="link-underline capitalize">{product.category}</a>
+      <span>·</span>
+      <span class="text-cocoa">{product.name}</span>
+    </nav>
+  </div>
+
+  <section class="container-aurelia py-8 lg:py-12">
+    <div class="grid lg:grid-cols-12 gap-10 lg:gap-16">
+      <div class="lg:col-span-7">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {product.images.map((img, i) => (
+            <div
+              class={`relative bg-cream overflow-hidden ${i === 0 ? 'md:col-span-2 aspect-[4/5]' : 'aspect-square'} cursor-zoom-in group`}
+              data-gallery-item={i}
+            >
+              <img
+                src={img.src}
+                alt={img.alt}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                fetchpriority={i === 0 ? 'high' : 'auto'}
+                class="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-110"
+                style="transition-timing-function: var(--ease-silk);"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="lg:col-span-5 lg:sticky lg:top-32 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-2">
+        <div class="space-y-7">
+          <div>
+            {product.badges && product.badges.length > 0 && (
+              <p class="eyebrow text-mocha mb-3">{product.badges.map((b) => b.replace('-', ' ')).join(' · ')}</p>
+            )}
+            <h1 class="font-display text-4xl md:text-5xl text-ink leading-tight mb-4">{product.name}</h1>
+            <p class="text-mocha leading-relaxed text-pretty">{product.shortDescription}</p>
+          </div>
+
+          <div class="border-t border-taupe/30 pt-6">
+            <div class="flex items-baseline gap-3 mb-2">
+              <span class="font-display text-3xl text-ink">{formatBRL(product.price)}</span>
+              {hasDiscount && (
+                <span class="text-base text-mocha/70 line-through">{formatBRL(product.oldPrice!)}</span>
+              )}
+            </div>
+            <p class="text-xs text-mocha">ou 6x de R$ {installment} sem juros</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <p class="eyebrow text-cocoa">Cor</p>
+              <p id="color-name" class="text-xs text-mocha">{product.colors[0].name}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              {product.colors.map((c, i) => (
+                <button
+                  type="button"
+                  data-color={c.name}
+                  data-i={i}
+                  class={`relative w-10 h-10 rounded-full border-2 transition-all duration-300 color-swatch ${
+                    i === 0 ? 'border-cocoa' : 'border-taupe/40 hover:border-mocha'
+                  }`}
+                  aria-label={c.name}
+                >
+                  <span class="absolute inset-1 rounded-full" style={`background-color: ${c.hex}`}></span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <p class="eyebrow text-cocoa">Tamanho</p>
+              <a href="/tamanhos" class="text-xs text-mocha link-underline">Guia de tamanhos</a>
+            </div>
+            <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+              {product.sizes.map((s) => (
+                <button
+                  type="button"
+                  data-size={s.label}
+                  disabled={!s.available}
+                  class={`size-btn h-12 border text-sm transition-all duration-300 ${
+                    s.available
+                      ? 'border-taupe/40 text-cocoa hover:border-cocoa hover:bg-cream'
+                      : 'border-taupe/20 text-taupe/50 line-through cursor-not-allowed bg-cream/50'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <p id="size-error" class="text-xs text-rose-700 mt-2 hidden">Por favor selecione um tamanho.</p>
+          </div>
+
+          <div class="space-y-3">
+            <button
+              id="add-to-cart"
+              data-product-id={product.id}
+              data-slug={product.slug}
+              data-name={product.name}
+              data-price={product.price}
+              data-image={product.images[0].src}
+              class="btn-primary w-full !py-5"
+            >
+              Adicionar à sacola
+            </button>
+            <button class="btn-ghost w-full !py-5 inline-flex items-center justify-center gap-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+              </svg>
+              Adicionar à lista de desejos
+            </button>
+          </div>
+
+          <div class="border-t border-taupe/30 pt-6 grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p class="text-xs text-mocha mb-0.5">Entrega</p>
+              <p class="text-xs text-cocoa font-medium">3-7 dias</p>
+            </div>
+            <div class="border-x border-taupe/30">
+              <p class="text-xs text-mocha mb-0.5">Trocas</p>
+              <p class="text-xs text-cocoa font-medium">Grátis 30 dias</p>
+            </div>
+            <div>
+              <p class="text-xs text-mocha mb-0.5">Garantia</p>
+              <p class="text-xs text-cocoa font-medium">Reparo vitalício</p>
+            </div>
+          </div>
+
+          <details class="group border-t border-taupe/30 pt-5" open>
+            <summary class="flex items-center justify-between cursor-pointer eyebrow text-cocoa list-none">
+              Descrição
+              <span class="text-xl transition-transform group-open:rotate-45">+</span>
+            </summary>
+            <p class="mt-4 text-sm text-mocha leading-relaxed text-pretty">{product.description}</p>
+          </details>
+
+          <details class="group border-t border-taupe/30 pt-5">
+            <summary class="flex items-center justify-between cursor-pointer eyebrow text-cocoa list-none">
+              Detalhes & materiais
+              <span class="text-xl transition-transform group-open:rotate-45">+</span>
+            </summary>
+            <div class="mt-4 space-y-2 text-sm text-mocha">
+              <ul class="space-y-1.5">
+                {product.details.map((d) => (
+                  <li class="flex gap-2"><span class="text-gold">·</span> {d}</li>
+                ))}
+              </ul>
+              <div class="pt-3 grid grid-cols-2 gap-2 text-xs border-t border-taupe/20 mt-3">
+                <div><span class="text-cocoa">Materiais:</span><br/>{product.materials}</div>
+                <div><span class="text-cocoa">Origem:</span><br/>{product.origin}</div>
+                {product.heelHeight && <div><span class="text-cocoa">Altura do salto:</span><br/>{product.heelHeight}</div>}
+              </div>
+            </div>
+          </details>
+
+          <details class="group border-t border-b border-taupe/30 py-5">
+            <summary class="flex items-center justify-between cursor-pointer eyebrow text-cocoa list-none">
+              Envio & devoluções
+              <span class="text-xl transition-transform group-open:rotate-45">+</span>
+            </summary>
+            <div class="mt-4 text-sm text-mocha space-y-2">
+              <p>Frete grátis em compras acima de R$ 499. Envio para todo o Brasil em 3 a 7 dias úteis.</p>
+              <p>Trocas e devoluções gratuitas em até 30 dias após receber a peça.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {related.length > 0 && (
+    <section class="py-20 lg:py-28 bg-cream">
+      <div class="container-aurelia">
+        <p class="eyebrow text-center mb-3">Você também vai amar</p>
+        <h2 class="display-md text-center mb-12">Combinações que conversam.</h2>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12 md:gap-x-6">
+          {related.map((p) => <ProductCard product={p} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <div
+    id="atc-toast"
+    class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-cocoa text-bone px-6 py-4 shadow-lift opacity-0 translate-y-4 pointer-events-none transition-all duration-500 z-30 text-sm"
+    style="transition-timing-function: var(--ease-silk);"
+  >
+    Adicionado à sua sacola ✓
+  </div>
+
+  <script>
+    import { addToCart } from '../../stores/cart';
+
+    let selectedColor: string | null = null;
+    let selectedSize: string | null = null;
+
+    document.querySelectorAll<HTMLButtonElement>('.color-swatch').forEach((btn, i) => {
+      if (i === 0) selectedColor = btn.dataset.color!;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.color-swatch').forEach((b) => {
+          b.classList.remove('border-cocoa');
+          b.classList.add('border-taupe/40');
+        });
+        btn.classList.add('border-cocoa');
+        btn.classList.remove('border-taupe/40');
+        selectedColor = btn.dataset.color!;
+        const nameEl = document.getElementById('color-name');
+        if (nameEl) nameEl.textContent = selectedColor;
+      });
+    });
+
+    document.querySelectorAll<HTMLButtonElement>('.size-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        document.querySelectorAll('.size-btn').forEach((b) => {
+          b.classList.remove('border-cocoa', 'bg-cream', 'text-ink');
+        });
+        btn.classList.add('border-cocoa', 'bg-cream', 'text-ink');
+        selectedSize = btn.dataset.size!;
+        document.getElementById('size-error')?.classList.add('hidden');
+      });
+    });
+
+    document.getElementById('add-to-cart')?.addEventListener('click', (e) => {
+      const btn = e.currentTarget as HTMLButtonElement;
+      if (!selectedSize) {
+        document.getElementById('size-error')?.classList.remove('hidden');
+        document.getElementById('size-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      addToCart({
+        productId: btn.dataset.productId!,
+        slug: btn.dataset.slug!,
+        name: btn.dataset.name!,
+        price: parseFloat(btn.dataset.price!),
+        image: btn.dataset.image!,
+        size: selectedSize,
+        color: selectedColor || '—',
+        quantity: 1,
+      });
+      const toast = document.getElementById('atc-toast');
+      toast?.classList.remove('opacity-0', 'translate-y-4');
+      setTimeout(() => toast?.classList.add('opacity-0', 'translate-y-4'), 2200);
+    });
+  </script>
+</BaseLayout>

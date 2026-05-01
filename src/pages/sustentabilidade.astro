@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+const hero = 'https://images.unsplash.com/photo-1473093226795-af9932fe5856?auto=format&fit=crop&w=2400&q=85';
+---
+
+<BaseLayout title="Sustentabilidade — AURÉLIA" description="Os compromissos AURÉLIA com a origem do couro, o trabalho artesanal e a longevidade dos produtos." image={hero}>
+  <section class="relative h-[60vh] min-h-[440px] overflow-hidden">
+    <img src={hero} alt="Sustentabilidade AURÉLIA" class="absolute inset-0 w-full h-full object-cover" fetchpriority="high" />
+    <div class="absolute inset-0 bg-gradient-to-b from-cocoa/40 to-cocoa/60"></div>
+    <div class="relative h-full container-aurelia flex items-end pb-16">
+      <div class="text-bone max-w-2xl animate-fade-up">
+        <p class="eyebrow text-gold-soft mb-4">Compromissos</p>
+        <h1 class="display-xl" style="color: #F5EFE6;">Sustentabilidade.</h1>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 lg:py-28">
+    <div class="container-narrow text-mocha leading-[1.85] space-y-6 text-pretty">
+      <p class="text-xl text-ink font-display italic">Fazer menos, fazer melhor, fazer durar.</p>
+      <p>
+        A AURÉLIA não é uma marca de fast fashion. Cada coleção é desenhada para durar décadas, com materiais que envelhecem com beleza e construção que permite reparos vitalícios.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-16 bg-cream">
+    <div class="container-aurelia grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+      {[
+        { t: 'Couro rastreado', d: 'Origem fazenda-curtume documentada para 100% dos lotes.' },
+        { t: 'Curtimento vegetal', d: 'Sem cromo. Taninos extraídos de cascas de árvores nativas.' },
+        { t: 'Trabalho justo', d: 'Artesãos contratados em regime CLT, com participação nos lucros.' },
+        { t: 'Reparos vitalícios', d: 'Cuidamos do seu par enquanto ele existir.' },
+      ].map((item, i) => (
+        <div class="reveal" style={`transition-delay: ${i * 80}ms`}>
+          <h3 class="font-display text-2xl mb-3 text-ink">{item.t}</h3>
+          <p class="text-mocha text-sm leading-relaxed">{item.d}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
