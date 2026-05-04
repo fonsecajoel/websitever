@@ -1,0 +1,128 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const faqs = [
+  {
+    category: 'Pedidos e Compras',
+    items: [
+      {
+        q: 'Como faço um pedido?',
+        a: 'Escolha seus produtos, adicione ao carrinho e finalize sua compra em poucos passos. Simples e rápido.',
+      },
+      {
+        q: 'Posso alterar ou cancelar meu pedido?',
+        a: 'Se o pedido ainda não foi enviado, conseguimos te ajudar. Entre em contato o quanto antes.',
+      },
+    ],
+  },
+  {
+    category: 'Pagamentos',
+    items: [
+      {
+        q: 'Quais formas de pagamento são aceitas?',
+        a: 'Aceitamos cartão de crédito, Pix e outras opções disponíveis no checkout.',
+      },
+      {
+        q: 'Meu pagamento foi aprovado?',
+        a: 'Você receberá a confirmação por e-mail. Caso não encontre, verifique sua caixa de spam.',
+      },
+    ],
+  },
+  {
+    category: 'Envios e Entregas',
+    items: [
+      {
+        q: 'Qual o prazo de entrega?',
+        a: 'O prazo varia de acordo com sua localização e é informado no momento da compra.',
+      },
+      {
+        q: 'Como acompanho meu pedido?',
+        a: 'Após o envio, você recebe o código de rastreio para acompanhar cada etapa.',
+      },
+    ],
+  },
+  {
+    category: 'Trocas e Devoluções',
+    items: [
+      {
+        q: 'Posso trocar um produto?',
+        a: 'Sim. Você pode solicitar a troca em até 30 dias após a compra.',
+      },
+      {
+        q: 'E se eu não gostar?',
+        a: 'Para compras online, você pode solicitar devolução em até 7 dias após o recebimento. Para mais detalhes, acesse nossa política de trocas e devoluções.',
+      },
+    ],
+  },
+  {
+    category: 'Produtos',
+    items: [
+      {
+        q: 'Os produtos são confortáveis?',
+        a: 'Sim. Nossa curadoria prioriza não só estilo, mas conforto e qualidade no dia a dia.',
+      },
+      {
+        q: 'Os modelos seguem tendências?',
+        a: 'Selecionamos peças atuais, mas sempre com um olhar atemporal. Nada que sai de moda em semanas.',
+      },
+    ],
+  },
+];
+---
+
+<BaseLayout title="Central de Ajuda — Santo Salto" description="Encontre respostas para as suas dúvidas sobre compras, envios, trocas e atendimento Santo Salto.">
+  <section class="pt-32 pb-12">
+    <div class="container-narrow text-center">
+      <p class="eyebrow mb-4">Suporte</p>
+      <h1 class="display-xl text-balance">Central de Ajuda.</h1>
+      <p class="text-mocha mt-6 max-w-xl mx-auto leading-relaxed">
+        Aqui você encontra tudo o que precisa para comprar com tranquilidade.<br/>
+        Se ainda ficar com dúvidas, nosso time está pronto para te atender.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-12 lg:py-20">
+    <div class="container-narrow space-y-16">
+
+      {faqs.map((section, si) => (
+        <div class="reveal" style={`transition-delay: ${si * 60}ms`}>
+          <h2 class="font-display text-2xl text-ink mb-8 pb-4 border-b" style="border-color: rgba(192,57,43,0.2);">
+            {section.category}
+          </h2>
+          <div class="space-y-6">
+            {section.items.map((item) => (
+              <div class="grid lg:grid-cols-[2fr,3fr] gap-4 lg:gap-12">
+                <p class="font-display text-lg text-ink">{item.q}</p>
+                <p class="text-mocha leading-[1.8]">
+                  {item.a}
+                  {item.q.includes('não gostar') && (
+                    <> <a href="/trocas" class="link-underline" style="color: #C0392B;">Ver política completa →</a></>
+                  )}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <!-- Atendimento direto -->
+      <div class="reveal bg-cream p-10 lg:p-14 text-center">
+        <p class="eyebrow mb-4" style="color: #C0392B;">Ainda tem dúvidas?</p>
+        <h2 class="font-display text-3xl text-ink mb-4">Fale com a Santo Salto</h2>
+        <p class="text-mocha leading-[1.8] mb-8 max-w-md mx-auto">
+          Nosso time responde o mais rápido possível, com um atendimento próximo e personalizado.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="mailto:santosaltovendas@gmail.com" class="btn-primary">
+            santosaltovendas@gmail.com
+          </a>
+          <a href="https://wa.me/5511910828374" target="_blank" rel="noopener noreferrer" class="btn-ghost">
+            WhatsApp +55 11 91082-8374
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</BaseLayout>
