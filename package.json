@@ -17,5 +17,9 @@
     "astro": "^6.1.9",
     "nanostores": "^1.3.0",
     "tailwindcss": "^4.2.4"
+  },
+  "devDependencies": {
+    "qrcode": "^1.5.4",
+    "sharp": "^0.34.5"
   }
 }
