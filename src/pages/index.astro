@@ -3,8 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import ProductCard from '../components/ProductCard.astro';
 import { products, collections } from '../data/products';
 
-const heroImage = 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=2400&q=85';
-const editorialImage = 'https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=1800&q=85';
+const heroImage = '/img-1754.png';
+const editorialImage = '/img-1757.png';
 const atelierImage = 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=1800&q=85';
 
 const novidades = products.filter((p) => p.isNew).slice(0, 4);
@@ -14,29 +14,29 @@ const heritagePieces = products.filter((p) => p.collection === 'heritage').slice
 const categoryShowcase = [
   { label: 'Saltos', href: '/colecao/scarpin', img: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=900&q=80' },
   { label: 'Sandálias', href: '/colecao/sandalia', img: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=900&q=80' },
-  { label: 'Tamancos', href: '/colecao/tamanco', img: 'https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=900&q=80' },
+  { label: 'Acessórios', href: '/acessorios', img: 'https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=900&q=80' },
   { label: 'Tênis', href: '/colecao/tenis', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80' },
   { label: 'Botas', href: '/colecao/bota', img: 'https://images.unsplash.com/photo-1605812860427-4024433a70fd?auto=format&fit=crop&w=900&q=80' },
   { label: 'Bolsas', href: '/colecao/bolsa', img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=900&q=80' },
 ];
 
 const testimonials = [
-  { quote: 'A qualidade do couro e o conforto do salto são incomparáveis. Uso o Aurora há um ano e parece novo.', author: 'Beatriz M.', city: 'São Paulo' },
-  { quote: 'Recebi a Sandália Celeste embalada como uma joia. A entrega impecável combina com o produto.', author: 'Mariana L.', city: 'Lisboa' },
-  { quote: 'Cada peça da Aurélia tem alma. Sente-se o trabalho dos artesãos em cada detalhe.', author: 'Renata C.', city: 'Belo Horizonte' },
+  { quote: 'A qualidade do couro e o conforto do salto são incomparáveis. Uso o Santo Salto há um ano e parece novo.', author: 'Beatriz M.', city: 'São Paulo' },
+  { quote: 'Recebi a minha compra embalada como uma joia. A entrega impecável combina com o produto.', author: 'Mariana L.', city: 'Lisboa' },
+  { quote: 'Amo todas as peças Santo Salto que tenho. Minha marca favorita até aqui.', author: 'Renata C.', city: 'Belo Horizonte' },
 ];
 ---
 
 <BaseLayout
-  title="AURÉLIA Santo Santo — desde 2023"
-  description="Santo Salto Store — calçado feminino com marca própria. Saltos, sandálias, tamancos e acessórios. Elevando mulheres com elegância e poder."
+  title="Aurelia — Santo Salto desde 2023"
+  description="Santo Salto — calçado feminino com marca própria. Saltos, sandálias e acessórios. Elevando mulheres com elegância e poder."
   image={heroImage}
 >
   <section class="relative h-[88vh] min-h-[640px] max-h-[900px] overflow-hidden">
     <div class="absolute inset-0">
       <img
         src={heroImage}
-        alt="Sapatos AURÉLIA — Coleção Aurora"
+        alt="Sapatos Santo Salto — Coleção Salto Alto"
         fetchpriority="high"
         class="w-full h-full object-cover scale-105 animate-float"
       />
@@ -46,7 +46,7 @@ const testimonials = [
 
     <div class="relative h-full container-aurelia flex items-end pb-20 lg:pb-32">
       <div class="max-w-2xl text-bone animate-fade-up">
-        <p class="eyebrow text-bone/85 mb-6">Coleção Aurora · Outono–Inverno</p>
+        <p class="eyebrow text-bone/85 mb-6">Coleção Salto Alto · Outono–Inverno</p>
         <h1 class="display-xl text-balance mb-8" style="color: #F5EFE6;">
           Passos com<br/><em class="italic font-light">história.</em>
         </h1>
@@ -55,7 +55,7 @@ const testimonials = [
         </p>
         <div class="flex flex-wrap gap-4">
           <a href="/colecao/novidades" class="btn-primary" style="background-color: #F5EFE6; color: #2E1F15;">
-            Ver coleção Aurora
+            Ver coleção Salto Alto
           </a>
           <a href="/atelier" class="btn-ghost" style="border-color: #F5EFE6; color: #F5EFE6;">
             Conheça a marca própria
@@ -148,7 +148,7 @@ const testimonials = [
     <div class="relative h-[60vh] lg:h-auto order-1 lg:order-2 overflow-hidden">
       <img
         src={editorialImage}
-        alt="Trabalho artesanal em couro — Coleção Heritage"
+        alt="Trabalho artesanal — Coleção Heritage"
         loading="lazy"
         class="absolute inset-0 w-full h-full object-cover"
       />
@@ -215,7 +215,7 @@ const testimonials = [
         <p class="font-display text-3xl md:text-5xl lg:text-6xl leading-[1.15] text-balance text-ink italic font-light">
           Elevando mulheres com elegância e poder.
         </p>
-        <p class="eyebrow mt-10 text-mocha">— Santo Salto Store, desde 2023</p>
+        <p class="eyebrow mt-10 text-mocha">— Santo Salto, desde 2023</p>
       </div>
     </div>
   </section>
@@ -224,7 +224,7 @@ const testimonials = [
     <div class="relative h-[60vh] lg:h-auto lg:col-span-3">
       <img
         src={atelierImage}
-        alt="Ateliê AURÉLIA em Franca-SP"
+        alt="Santo Salto — Marca Própria"
         loading="lazy"
         class="absolute inset-0 w-full h-full object-cover"
       />
@@ -234,7 +234,7 @@ const testimonials = [
         <p class="eyebrow mb-5">Marca Própria</p>
         <h2 class="display-md mb-6 text-balance">Onde nasce cada peça.</h2>
         <p class="text-mocha leading-relaxed mb-8 text-pretty">
-          A Santo Salto Store tem marca própria cuidadosamente desenvolvida — sem fabricação própria, mas com design, identidade e qualidade que são 100% nossos.
+          A Santo Salto tem marca própria cuidadosamente desenvolvida com design, identidade e qualidade.
           Cada peça reflete a nossa assinatura: elegância e poder para a mulher moderna.
         </p>
         <ul class="space-y-3 mb-8 text-sm text-cocoa">
