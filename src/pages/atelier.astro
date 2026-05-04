@@ -6,15 +6,15 @@ const detail2 = 'https://images.unsplash.com/photo-1517170875639-31f87a376a31?au
 const detail3 = 'https://images.unsplash.com/photo-1607522370275-f14206abe5d3?auto=format&fit=crop&w=1400&q=80';
 ---
 
-<BaseLayout title="O Ateliê — AURÉLIA" description="Conheça o ateliê AURÉLIA em Franca-SP, onde cada par é construído à mão." image={hero}>
+<BaseLayout title="Santo Salto — Marca Própria" description="Conheça a Santo Salto, marca própria brasileira de calçado e acessórios femininos." image={hero}>
   <section class="relative h-[80vh] min-h-[600px] overflow-hidden">
-    <img src={hero} alt="Ateliê AURÉLIA" class="absolute inset-0 w-full h-full object-cover" fetchpriority="high" />
+    <img src={hero} alt="Santo Salto" class="absolute inset-0 w-full h-full object-cover" fetchpriority="high" />
     <div class="absolute inset-0 bg-gradient-to-b from-cocoa/30 via-transparent to-cocoa/60"></div>
     <div class="relative h-full container-aurelia flex items-end pb-16 lg:pb-24">
       <div class="text-bone max-w-2xl animate-fade-up">
-        <p class="eyebrow text-gold-soft mb-4">Franca, São Paulo</p>
-        <h1 class="display-xl mb-6" style="color: #F5EFE6;">O ateliê.</h1>
-        <p class="text-xl text-bone/85 leading-relaxed font-light">Onde cada par leva o tempo que merece.</p>
+        <p class="eyebrow text-gold-soft mb-4">Jundiaí, São Paulo</p>
+        <h1 class="display-xl mb-6" style="color: #F5EFE6;">Santo Salto.</h1>
+        <p class="text-xl text-bone/85 leading-relaxed font-light">Onde cada peça carrega uma escolha intencional.</p>
       </div>
     </div>
   </section>
@@ -22,18 +22,41 @@ const detail3 = 'https://images.unsplash.com/photo-1607522370275-f14206abe5d3?au
   <section class="py-20 lg:py-28">
     <div class="container-narrow">
       <div class="reveal text-center mb-16">
-        <p class="eyebrow mb-4">Manifesto do ateliê</p>
-        <h2 class="display-md text-balance">Acreditamos no tempo como ingrediente.</h2>
+        <p class="eyebrow mb-4">Nossa marca</p>
+        <h2 class="display-md text-balance">Nossa marca</h2>
       </div>
       <div class="reveal text-mocha text-lg leading-[1.85] space-y-6 text-pretty">
         <p>
-          Em Franca, capital brasileira do calçado desde 1820, instalámos o nosso ateliê numa antiga casa colonial de pé direito alto. As janelas largas trazem a luz que precisamos para escolher o couro, costurar a sapatilha, polir o solado.
+          A Santo Salto começou com uma curadoria de multimarcas, uma escolha que trouxe experiência, repertório e um olhar apurado sobre o que realmente funciona.
         </p>
         <p>
-          Trabalhamos com sete mestres artesãos, cada um com mais de duas décadas de ofício. Não somos uma fábrica — somos uma oficina. Por isso, cada par leva entre 6 e 14 horas para nascer. Nada é apressado, nada é improvisado.
+          Mas, com o tempo, ficou claro: escolher não era o suficiente.
         </p>
         <p>
-          O nosso couro vem de curtumes parceiros no Rio Grande do Sul e em Minas Gerais, com curtimento vegetal sem cromo, certificação Leather Working Group e rastreabilidade desde a fazenda. Acreditamos que a beleza começa muito antes do molde.
+          Carla e Renata queriam mais do que selecionar peças bonitas.
+          Queriam criar algo que traduzisse, de verdade, a essência, o estilo e o padrão que acreditam.
+        </p>
+        <p>
+          Foi assim que nasceu a marca própria da Santo Salto.
+        </p>
+        <p>
+          Uma marca pensada para mulheres que não escolhem no automático.
+          Que entendem o valor dos detalhes, do caimento, da presença.
+        </p>
+        <p>
+          Começamos pelos calçados, nosso ponto de partida, onde tudo ganha forma e atitude.
+          E, naturalmente, evoluímos.
+        </p>
+        <p>
+          Hoje, a Santo Salto também se expressa em bolsas e óculos de sol, ampliando possibilidades sem perder identidade.
+        </p>
+        <p>
+          Cada peça carrega uma escolha intencional:<br/>
+          não seguir tudo o que existe, mas criar o que realmente faz sentido.
+        </p>
+        <p class="font-display text-xl text-ink italic font-light">
+          Porque, no fim, não é só sobre produto.<br/>
+          É sobre se reconhecer no que você usa.
         </p>
       </div>
     </div>
@@ -42,31 +65,8 @@ const detail3 = 'https://images.unsplash.com/photo-1607522370275-f14206abe5d3?au
   <section class="grid md:grid-cols-3 gap-1">
     {[detail1, detail2, detail3].map((src, i) => (
       <div class="reveal aspect-[3/4] overflow-hidden bg-cream" style={`transition-delay: ${i * 120}ms`}>
-        <img src={src} alt={`Detalhe do ateliê ${i + 1}`} loading="lazy" class="w-full h-full object-cover" />
+        <img src={src} alt={`Santo Salto detalhe ${i + 1}`} loading="lazy" class="w-full h-full object-cover" />
       </div>
     ))}
-  </section>
-
-  <section class="py-20 lg:py-28 bg-cream">
-    <div class="container-aurelia">
-      <div class="reveal text-center mb-16">
-        <p class="eyebrow mb-3">Os passos</p>
-        <h2 class="display-md text-balance">Como nasce um par AURÉLIA.</h2>
-      </div>
-      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-        {[
-          { n: '01', t: 'Seleção do couro', d: 'Cada peça de couro é examinada manualmente. Apenas 60% do material que recebemos é aprovado.' },
-          { n: '02', t: 'Modelagem', d: 'Em formas de madeira maciça construídas à medida, definimos a anatomia exata do par.' },
-          { n: '03', t: 'Costura à mão', d: 'Pespontos selados com fio encerado, costurados na flor do couro com agulhas curvas.' },
-          { n: '04', t: 'Acabamento', d: 'Polimento, encerado, marcação a fogo. Cada par leva o número de série e a assinatura do mestre.' },
-        ].map((step, i) => (
-          <div class="reveal" style={`transition-delay: ${i * 80}ms`}>
-            <p class="font-display text-5xl text-gold mb-4">{step.n}</p>
-            <h3 class="font-display text-xl mb-3">{step.t}</h3>
-            <p class="text-mocha leading-relaxed text-sm">{step.d}</p>
-          </div>
-        ))}
-      </div>
-    </div>
   </section>
 </BaseLayout>
