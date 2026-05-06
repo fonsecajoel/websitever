@@ -1,18 +1,15 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProductCard from '../../components/ProductCard.astro';
-import { products, categoryLabels, type ProductCategory } from '../../data/products';
+import { categoryLabels, type ProductCategory } from '../../data/products';
+import { getProductsFromDB } from '../../lib/db';
 
-export function getStaticPaths() {
-  const cats: ProductCategory[] = ['scarpin', 'sandalia', 'tamanco', 'tenis', 'mule', 'bota', 'rasteira', 'bolsa'];
-  return [
-    { params: { categoria: 'novidades' }, props: { kind: 'novidades' as const } },
-    ...cats.map((c) => ({ params: { categoria: c }, props: { kind: 'category' as const, category: c } })),
-  ];
-}
-
-const { kind } = Astro.props;
-const category = Astro.props.kind === 'category' ? Astro.props.category : null;
+const products = await getProductsFromDB();
+const { categoria } = Astro.params;
+const cats: ProductCategory[] = ['scarpin', 'sandalia', 'tamanco', 'tenis', 'mule', 'bota', 'rasteira', 'bolsa'];
+const isCategory = cats.includes(categoria as ProductCategory);
+const kind = isCategory ? 'category' : 'novidades';
+const category = isCategory ? (categoria as ProductCategory) : null;
 
 let list = products;
 let title = 'Novidades';

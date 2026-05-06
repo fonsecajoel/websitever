@@ -1,14 +1,20 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProductCard from '../../components/ProductCard.astro';
-import { products, getProductBySlug, getRelatedProducts, formatBRL } from '../../data/products';
+import { formatBRL } from '../../data/products';
+import { getProductsFromDB } from '../../lib/db';
 
-export function getStaticPaths() {
-  return products.map((p) => ({ params: { slug: p.slug }, props: { product: p } }));
+const { slug } = Astro.params;
+const allProducts = await getProductsFromDB();
+const product = allProducts.find(p => p.slug === slug);
+
+if (!product) {
+  return Astro.redirect('/404');
 }
 
-const { product } = Astro.props;
-const related = getRelatedProducts(product, 4);
+const related = allProducts
+  .filter(p => p.id !== product.id && (p.category === product.category || p.collection === product.collection))
+  .slice(0, 4);
 const hasDiscount = product.oldPrice && product.oldPrice > product.price;
 const installment = (product.price / 6).toFixed(2).replace('.', ',');
 ---

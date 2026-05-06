@@ -1,0 +1,218 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getProductById, updateProduct, uploadImage, deleteImage } from '../../../lib/db';
+import type { Product } from '../../../data/products';
+
+const { id } = Astro.params;
+let product = await getProductById(id!);
+
+if (!product) {
+  return Astro.redirect('/admin/produtos');
+}
+
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  try {
+    const form = await Astro.request.formData();
+
+    let images = [...product.images];
+
+    const removeImages = form.getAll('remove_image') as string[];
+    if (removeImages.length > 0) {
+      for (const url of removeImages) {
+        await deleteImage(url);
+      }
+      images = images.filter(img => !removeImages.includes(img.src));
+    }
+
+    const imageFiles = form.getAll('images') as File[];
+    for (const file of imageFiles) {
+      if (file.size > 0) {
+        const url = await uploadImage(file);
+        images.push({ src: url, alt: form.get('name') as string });
+      }
+    }
+
+    const imageUrls = (form.get('image_urls') as string || '').split('\n').filter(u => u.trim());
+    for (const url of imageUrls) {
+      images.push({ src: url.trim(), alt: form.get('name') as string });
+    }
+
+    const sizesRaw = (form.get('sizes') as string || '').split(',');
+    const sizes = sizesRaw.map(s => ({ label: s.trim(), available: true }));
+
+    const colorsRaw = (form.get('colors') as string || '').split('\n').filter(c => c.trim());
+    const colors = colorsRaw.map(c => {
+      const [name, hex] = c.split(':').map(s => s.trim());
+      return { name: name || '', hex: hex || '#000000' };
+    });
+
+    const updates: Partial<Product> = {
+      name: form.get('name') as string,
+      slug: (form.get('slug') as string) || product.slug,
+      category: form.get('category') as any,
+      collection: form.get('collection') as any,
+      price: Number(form.get('price')),
+      oldPrice: form.get('oldPrice') ? Number(form.get('oldPrice')) : undefined,
+      shortDescription: form.get('shortDescription') as string || '',
+      description: form.get('description') as string || '',
+      details: (form.get('details') as string || '').split('\n').filter(d => d.trim()),
+      materials: form.get('materials') as string || '',
+      origin: form.get('origin') as string || '',
+      heelHeight: form.get('heelHeight') as string || undefined,
+      colors,
+      sizes,
+      images,
+      badges: (form.getAll('badges') as string[]).filter(b => b) as any[],
+      isNew: form.get('isNew') === 'on',
+    };
+
+    await updateProduct(id!, updates);
+    return Astro.redirect('/admin/produtos');
+  } catch (e: any) {
+    error = e.message || 'Erro ao atualizar produto';
+  }
+}
+---
+
+<AdminLayout title={`Editar: ${product.name}`}>
+  <div class="admin-header">
+    <h2>Editar: {product.name}</h2>
+    <a href="/admin/produtos" class="btn btn-secondary">← Voltar</a>
+  </div>
+
+  {error && <div style="background: #fef2f2; color: #dc2626; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem;">{error}</div>}
+
+  <form method="POST" enctype="multipart/form-data" class="card">
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="name">Nome *</label>
+        <input type="text" id="name" name="name" required value={product.name} />
+      </div>
+      <div class="form-group">
+        <label for="slug">Slug</label>
+        <input type="text" id="slug" name="slug" value={product.slug} />
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="category">Categoria *</label>
+        <select id="category" name="category" required>
+          <option value="scarpin" selected={product.category === 'scarpin'}>Scarpin</option>
+          <option value="sandalia" selected={product.category === 'sandalia'}>Sandália</option>
+          <option value="tamanco" selected={product.category === 'tamanco'}>Tamanco</option>
+          <option value="tenis" selected={product.category === 'tenis'}>Tênis</option>
+          <option value="mule" selected={product.category === 'mule'}>Mule</option>
+          <option value="bota" selected={product.category === 'bota'}>Bota</option>
+          <option value="rasteira" selected={product.category === 'rasteira'}>Rasteira</option>
+          <option value="bolsa" selected={product.category === 'bolsa'}>Bolsa</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="collection">Coleção *</label>
+        <select id="collection" name="collection" required>
+          <option value="aurora" selected={product.collection === 'aurora'}>Aurora</option>
+          <option value="heritage" selected={product.collection === 'heritage'}>Heritage</option>
+          <option value="noir" selected={product.collection === 'noir'}>Noir</option>
+          <option value="verao" selected={product.collection === 'verao'}>Verão</option>
+          <option value="essentials" selected={product.collection === 'essentials'}>Essentials</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="price">Preço (R$) *</label>
+        <input type="number" id="price" name="price" required min="0" step="1" value={product.price} />
+      </div>
+      <div class="form-group">
+        <label for="oldPrice">Preço Antigo (R$)</label>
+        <input type="number" id="oldPrice" name="oldPrice" min="0" step="1" value={product.oldPrice || ''} />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="shortDescription">Descrição Curta</label>
+      <input type="text" id="shortDescription" name="shortDescription" value={product.shortDescription} />
+    </div>
+
+    <div class="form-group">
+      <label for="description">Descrição Completa</label>
+      <textarea id="description" name="description">{product.description}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="details">Detalhes (um por linha)</label>
+      <textarea id="details" name="details">{product.details.join('\n')}</textarea>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="materials">Materiais</label>
+        <input type="text" id="materials" name="materials" value={product.materials} />
+      </div>
+      <div class="form-group">
+        <label for="origin">Origem</label>
+        <input type="text" id="origin" name="origin" value={product.origin} />
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="heelHeight">Altura do Salto</label>
+        <input type="text" id="heelHeight" name="heelHeight" value={product.heelHeight || ''} />
+      </div>
+      <div class="form-group">
+        <label for="sizes">Tamanhos (separados por vírgula)</label>
+        <input type="text" id="sizes" name="sizes" value={product.sizes.map(s => s.label).join(',')} />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="colors">Cores (uma por linha, formato: Nome:#HEX)</label>
+      <textarea id="colors" name="colors">{product.colors.map(c => `${c.name}:${c.hex}`).join('\n')}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Imagens Atuais</label>
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem;">
+        {product.images.map(img => (
+          <div style="position: relative;">
+            <img src={img.src} alt={img.alt} style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px;" />
+            <label style="display: block; font-size: 0.75rem; margin-top: 0.25rem;">
+              <input type="checkbox" name="remove_image" value={img.src} /> Remover
+            </label>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="images">Adicionar Novas Imagens</label>
+      <input type="file" id="images" name="images" multiple accept="image/*" />
+    </div>
+
+    <div class="form-group">
+      <label for="image_urls">Ou URLs de imagens (uma por linha)</label>
+      <textarea id="image_urls" name="image_urls" placeholder="https://..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Badges</label>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <label style="font-weight: normal;"><input type="checkbox" name="badges" value="novo" checked={product.badges?.includes('novo')} /> Novo</label>
+        <label style="font-weight: normal;"><input type="checkbox" name="badges" value="best-seller" checked={product.badges?.includes('best-seller')} /> Best-seller</label>
+        <label style="font-weight: normal;"><input type="checkbox" name="badges" value="edicao-limitada" checked={product.badges?.includes('edicao-limitada')} /> Edição Limitada</label>
+        <label style="font-weight: normal;"><input type="checkbox" name="badges" value="ultimas-pecas" checked={product.badges?.includes('ultimas-pecas')} /> Últimas Peças</label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label style="font-weight: normal;"><input type="checkbox" name="isNew" checked={product.isNew} /> Marcar como Novidade</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Guardar Alterações</button>
+  </form>
+</AdminLayout>

@@ -1,0 +1,54 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getProductsFromDB } from '../../lib/db';
+
+const products = await getProductsFromDB();
+const totalProducts = products.length;
+const totalValue = products.reduce((sum, p) => sum + p.price, 0);
+---
+
+<AdminLayout title="Dashboard">
+  <div class="admin-header">
+    <h2>Dashboard</h2>
+  </div>
+
+  <div class="form-grid" style="margin-bottom: 2rem;">
+    <div class="card">
+      <p style="color: #666; font-size: 0.85rem; margin-bottom: 0.25rem;">Total Produtos</p>
+      <p style="font-size: 2rem; font-weight: 700;">{totalProducts}</p>
+    </div>
+    <div class="card">
+      <p style="color: #666; font-size: 0.85rem; margin-bottom: 0.25rem;">Valor Médio</p>
+      <p style="font-size: 2rem; font-weight: 700;">R$ {Math.round(totalValue / totalProducts)}</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 1rem;">Últimos Produtos</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Foto</th>
+          <th>Nome</th>
+          <th>Preço</th>
+          <th>Categoria</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {products.slice(0, 5).map(p => (
+          <tr>
+            <td><img src={p.images[0]?.src} alt="" class="product-thumb" /></td>
+            <td>{p.name}</td>
+            <td>R$ {p.price}</td>
+            <td><span class="badge badge-green">{p.category}</span></td>
+            <td><a href={`/admin/produtos/${p.id}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Editar</a></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <div style="margin-top: 1rem;">
+      <a href="/admin/produtos" class="btn btn-secondary">Ver todos →</a>
+    </div>
+  </div>
+</AdminLayout>

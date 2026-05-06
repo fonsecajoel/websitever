@@ -1,7 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProductCard from '../components/ProductCard.astro';
-import { products, collections } from '../data/products';
+import { collections } from '../data/products';
+import { getProductsFromDB } from '../lib/db';
+
+const products = await getProductsFromDB();
 
 const heroImage = '/img-1754-v2.png';
 const editorialImage = '/img-1757-v2.png';

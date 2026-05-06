@@ -1,15 +1,18 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProductCard from '../../components/ProductCard.astro';
-import { products, collections, type Collection } from '../../data/products';
+import { collections, type Collection } from '../../data/products';
+import { getProductsFromDB } from '../../lib/db';
 
-export function getStaticPaths() {
-  return Object.keys(collections).map((key) => ({ params: { colecao: key } }));
-}
-
+const products = await getProductsFromDB();
 const { colecao } = Astro.params;
 const key = colecao as Collection;
 const col = collections[key];
+
+if (!col) {
+  return Astro.redirect('/404');
+}
+
 const items = products.filter((p) => p.collection === key);
 ---
 

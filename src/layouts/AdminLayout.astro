@@ -1,0 +1,65 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} | Admin</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
+      .admin-layout { display: flex; min-height: 100vh; }
+      .admin-sidebar { width: 250px; background: #1a1a1a; color: #fff; padding: 2rem 1rem; position: fixed; height: 100vh; overflow-y: auto; }
+      .admin-sidebar h1 { font-size: 1.1rem; margin-bottom: 2rem; padding: 0 0.5rem; letter-spacing: 0.05em; }
+      .admin-sidebar a { display: block; padding: 0.7rem 0.75rem; color: #ccc; text-decoration: none; border-radius: 6px; margin-bottom: 0.25rem; font-size: 0.9rem; }
+      .admin-sidebar a:hover, .admin-sidebar a.active { background: #333; color: #fff; }
+      .admin-main { margin-left: 250px; flex: 1; padding: 2rem; }
+      .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+      .admin-header h2 { font-size: 1.5rem; }
+      .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; text-decoration: none; font-weight: 500; }
+      .btn-primary { background: #1a1a1a; color: #fff; }
+      .btn-primary:hover { background: #333; }
+      .btn-danger { background: #dc2626; color: #fff; }
+      .btn-danger:hover { background: #b91c1c; }
+      .btn-secondary { background: #e5e5e5; color: #1a1a1a; }
+      .btn-secondary:hover { background: #d4d4d4; }
+      table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+      th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #f0f0f0; }
+      th { background: #fafafa; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; color: #666; }
+      td { font-size: 0.9rem; }
+      .product-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
+      .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+      .badge-green { background: #dcfce7; color: #166534; }
+      .badge-yellow { background: #fef9c3; color: #854d0e; }
+      .form-group { margin-bottom: 1.25rem; }
+      .form-group label { display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem; }
+      .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; }
+      .form-group textarea { min-height: 100px; resize: vertical; }
+      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+      .card { background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    </style>
+  </head>
+  <body>
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <h1>🏪 SANTO SALTO</h1>
+        <a href="/admin">Dashboard</a>
+        <a href="/admin/produtos">Produtos</a>
+        <a href="/admin/produtos/novo">+ Novo Produto</a>
+        <hr style="border-color: #333; margin: 1rem 0;" />
+        <a href="/" target="_blank">Ver Site →</a>
+        <a href="/admin/logout">Sair</a>
+      </aside>
+      <main class="admin-main">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

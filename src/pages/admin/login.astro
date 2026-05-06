@@ -1,0 +1,64 @@
+---
+import { validateCredentials, createSessionToken } from '../../lib/auth';
+
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const email = form.get('email') as string;
+  const password = form.get('password') as string;
+
+  if (validateCredentials(email, password)) {
+    const token = createSessionToken();
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': '/admin',
+        'Set-Cookie': `admin_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`,
+      },
+    });
+  } else {
+    error = 'Email ou password incorretos.';
+  }
+}
+---
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Login | Santo Salto</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .login-card { background: #fff; padding: 2.5rem; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .login-card h1 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+    .login-card p { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.3rem; font-weight: 500; font-size: 0.85rem; }
+    .form-group input { width: 100%; padding: 0.65rem 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; }
+    .btn { width: 100%; padding: 0.75rem; background: #1a1a1a; color: #fff; border: none; border-radius: 6px; font-size: 0.95rem; cursor: pointer; font-weight: 500; }
+    .btn:hover { background: #333; }
+    .error { background: #fef2f2; color: #dc2626; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <h1>🏪 Santo Salto</h1>
+    <p>Painel de Administração</p>
+    {error && <div class="error">{error}</div>}
+    <form method="POST">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+      <button type="submit" class="btn">Entrar</button>
+    </form>
+  </div>
+</body>
+</html>

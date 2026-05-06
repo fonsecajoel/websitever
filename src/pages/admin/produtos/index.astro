@@ -1,0 +1,56 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getProductsFromDB, deleteProduct } from '../../../lib/db';
+import { categoryLabels } from '../../../data/products';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = form.get('action') as string;
+  const id = form.get('id') as string;
+
+  if (action === 'delete' && id) {
+    await deleteProduct(id);
+  }
+}
+
+const products = await getProductsFromDB();
+---
+
+<AdminLayout title="Produtos">
+  <div class="admin-header">
+    <h2>Produtos ({products.length})</h2>
+    <a href="/admin/produtos/novo" class="btn btn-primary">+ Novo Produto</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Foto</th>
+        <th>Nome</th>
+        <th>Preço</th>
+        <th>Categoria</th>
+        <th>Coleção</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {products.map(p => (
+        <tr>
+          <td><img src={p.images[0]?.src} alt="" class="product-thumb" /></td>
+          <td><strong>{p.name}</strong><br /><span style="font-size: 0.8rem; color: #666;">{p.slug}</span></td>
+          <td>R$ {p.price}{p.oldPrice && <span style="text-decoration: line-through; color: #999; margin-left: 0.5rem; font-size: 0.8rem;">R$ {p.oldPrice}</span>}</td>
+          <td><span class="badge badge-green">{categoryLabels[p.category]}</span></td>
+          <td>{p.collection}</td>
+          <td style="display: flex; gap: 0.5rem;">
+            <a href={`/admin/produtos/${p.id}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Editar</a>
+            <form method="POST" style="display: inline;" onsubmit="return confirm('Tens a certeza?')">
+              <input type="hidden" name="action" value="delete" />
+              <input type="hidden" name="id" value={p.id} />
+              <button type="submit" class="btn btn-danger" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Apagar</button>
+            </form>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</AdminLayout>
