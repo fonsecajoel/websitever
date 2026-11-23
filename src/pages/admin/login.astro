@@ -1,5 +1,5 @@
 ---
-import { loginIdentifierToEmail } from '../../lib/server/auth';
+import { isAdminAccount, loginIdentifierToEmail } from '../../lib/server/auth';
 import '../../styles/admin.css';
 import { isSupabaseConfigured } from '../../lib/env';
 import { supabaseForRequest } from '../../lib/server/supabase';
@@ -25,9 +25,9 @@ if (configured && Astro.request.method === 'POST') {
     error = 'E-mail ou palavra-passe incorretos.';
   } else {
     const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).maybeSingle();
-    if (profile?.role === 'admin') return Astro.redirect(next);
+    if (isAdminAccount(data.user.email, profile?.role)) return Astro.redirect(next);
     await sb.auth.signOut();
-    error = 'Esta conta não tem permissões de administração.';
+    error = 'Só o utilizador admin tem acesso à gestão.';
   }
 }
 ---
