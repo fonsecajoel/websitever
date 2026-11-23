@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getOrderByStripeSession } from '../../lib/server/order-view';
+import { formatBRL } from '../../lib/pricing';
+import { isSupabaseConfigured } from '../../lib/env';
+
+const order = isSupabaseConfigured() ? await getOrderByStripeSession(Astro.url.searchParams.get('session_id')) : null;
+---
+
+<BaseLayout title="Obrigada!" noIndex>
+  <section class="min-h-[80vh] grid place-items-center py-20 text-center">
+    <div class="container-narrow">
+      <div class="mx-auto w-20 h-20 rounded-full bg-brand text-bone grid place-items-center mb-8 animate-fade-up">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5L20 7"/></svg>
+      </div>
+      <p class="script text-gold-gradient text-6xl mb-2">Obrigada</p>
+      <h1 class="display-lg mb-5">{order ? `Encomenda #${order.number} confirmada.` : 'Encomenda recebida.'}</h1>
+      <p class="text-mocha max-w-md mx-auto mb-10">
+        {order ? <>Enviámos a confirmação para <strong>{order.email}</strong>. Total: {formatBRL(Number(order.total))}.</> : 'Vai receber a confirmação por e-mail em instantes.'}
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        {order && <a href={`/pedido/${order.id}?t=${order.access_token}`} class="btn-primary">Acompanhar encomenda</a>}
+        <a href="/" class="btn-ghost text-ink">Voltar à loja</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+<script>
+  import { clearCart } from '../../stores/cart';
+  clearCart();
+</script>

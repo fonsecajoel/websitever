@@ -1,0 +1,72 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseForRequest } from '../../lib/server/supabase';
+import { formatBRL } from '../../lib/pricing';
+import { fmtDate } from '../../lib/server/admin/helpers';
+
+const sb = supabaseForRequest(Astro.request, Astro.cookies);
+const q = Astro.url.searchParams.get('q')?.trim().replace(/[%,()]/g, '') ?? '';
+
+let cq = sb.from('customers').select('id,email,first_name,last_name,phone,created_at').order('created_at', { ascending: false }).limit(500);
+if (q) cq = cq.or(`email.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%`);
+const [{ data: custData, error }, { data: ordData }] = await Promise.all([
+  cq,
+  sb.from('orders').select('customer_id,total,payment_status,created_at'),
+]);
+
+interface CustomerRow { id: string; email: string; first_name: string; last_name: string; phone: string; created_at: string }
+interface MiniOrder { customer_id: string | null; total: number | string; payment_status: string; created_at: string }
+const orders = (ordData ?? []) as MiniOrder[];
+const stats = new Map<string, { count: number; spent: number; last: string }>();
+for (const o of orders) {
+  if (!o.customer_id) continue;
+  const s = stats.get(o.customer_id) ?? { count: 0, spent: 0, last: '' };
+  s.count += 1;
+  if (o.payment_status === 'paid') s.spent += Number(o.total);
+  if (o.created_at > s.last) s.last = o.created_at;
+  stats.set(o.customer_id, s);
+}
+const customers = ((custData ?? []) as CustomerRow[])
+  .map((c) => ({ ...c, ...(stats.get(c.id) ?? { count: 0, spent: 0, last: '' }) }))
+  .sort((a, b) => b.spent - a.spent);
+---
+<AdminLayout title="Clientes" active="clientes" subtitle={`${customers.length} cliente(s)`}>
+  {error && <div class="a-flash a-flash-err">{error.message}</div>}
+  <form method="GET" class="a-card p-4 flex gap-3 items-end">
+    <div class="flex-1">
+      <label class="a-label" for="q">Pesquisar</label>
+      <input class="a-input" id="q" name="q" value={q} placeholder="Nome ou e-mail" />
+    </div>
+    <button class="a-btn a-btn-ghost">Procurar</button>
+  </form>
+  <div class="a-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="a-table">
+        <thead><tr><th>Cliente</th><th>Telefone</th><th>Encomendas</th><th>Total gasto</th><th>Última compra</th><th>Cliente desde</th></tr></thead>
+        <tbody>
+          {customers.length === 0 && <tr><td colspan="6" class="text-center py-12 text-taupe">Ainda sem clientes.</td></tr>}
+          {customers.map((c, i) => (
+            <tr>
+              <td>
+                <div class="flex items-center gap-3">
+                  <span class="w-9 h-9 rounded-full grid place-items-center text-[12px] font-semibold text-bone shrink-0" style={`background: ${i < 3 && c.spent > 0 ? 'linear-gradient(135deg,#E2BC44,#C9A227)' : '#6B0E09'}`}>
+                    {(c.first_name[0] ?? c.email[0] ?? '?').toUpperCase()}
+                  </span>
+                  <div>
+                    <p class="font-medium">{[c.first_name, c.last_name].filter(Boolean).join(' ') || '—'}</p>
+                    <a href={`/admin/encomendas?q=${encodeURIComponent(c.email)}`} class="text-[12px] text-taupe hover:text-brand-red">{c.email}</a>
+                  </div>
+                </div>
+              </td>
+              <td class="text-mocha">{c.phone || '—'}</td>
+              <td>{c.count}</td>
+              <td class="font-semibold">{formatBRL(c.spent)}</td>
+              <td class="text-[12.5px] text-mocha">{c.last ? fmtDate(c.last, false) : '—'}</td>
+              <td class="text-[12.5px] text-taupe">{fmtDate(c.created_at, false)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>

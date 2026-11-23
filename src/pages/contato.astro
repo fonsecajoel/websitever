@@ -3,7 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="Contato — Santo Salto" description="Fale com a Santo Salto. Atendimento personalizado para cada cliente.">
-  <section class="pt-32 pb-12">
+  <section class="pt-14 md:pt-20 pb-12">
     <div class="container-narrow text-center">
       <p class="eyebrow mb-4">Fale connosco</p>
       <h1 class="display-xl text-balance">Estamos à sua disposição.</h1>
@@ -35,19 +35,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </div>
 
-      <form class="bg-cream p-8 lg:p-12 space-y-5" id="contact-form">
+      <form class="bg-cream rounded-[28px] p-8 lg:p-12 space-y-5" id="contact-form">
+        <input type="text" name="website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
         <p class="eyebrow text-mocha mb-4">Envie a sua mensagem</p>
         <label class="block">
           <span class="text-xs uppercase tracking-[0.18em] text-mocha block mb-2">Nome</span>
-          <input required name="name" type="text" class="w-full px-4 py-3 bg-white border border-taupe/30 focus:border-cocoa outline-none transition-colors" />
+          <input required name="name" type="text" class="input" />
         </label>
         <label class="block">
           <span class="text-xs uppercase tracking-[0.18em] text-mocha block mb-2">E-mail</span>
-          <input required name="email" type="email" class="w-full px-4 py-3 bg-white border border-taupe/30 focus:border-cocoa outline-none transition-colors" />
+          <input required name="email" type="email" class="input" />
         </label>
         <label class="block">
           <span class="text-xs uppercase tracking-[0.18em] text-mocha block mb-2">Assunto</span>
-          <select name="subject" class="w-full px-4 py-3 bg-white border border-taupe/30 focus:border-cocoa outline-none transition-colors">
+          <select name="subject" class="input">
             <option>Dúvida sobre produto</option>
             <option>Acompanhamento de pedido</option>
             <option>Trocas e devoluções</option>
@@ -56,7 +57,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </label>
         <label class="block">
           <span class="text-xs uppercase tracking-[0.18em] text-mocha block mb-2">Mensagem</span>
-          <textarea required name="message" rows="6" class="w-full px-4 py-3 bg-white border border-taupe/30 focus:border-cocoa outline-none transition-colors"></textarea>
+          <textarea required name="message" rows="6" class="input"></textarea>
         </label>
         <button type="submit" class="btn-primary w-full">Enviar mensagem</button>
         <p id="contact-success" class="hidden text-sm text-cocoa text-center">Mensagem enviada. Responderemos em até 24h úteis.</p>
@@ -65,10 +66,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   </section>
 
   <script>
-    document.getElementById('contact-form')!.addEventListener('submit', (e) => {
-      e.preventDefault();
-      (e.target as HTMLFormElement).reset();
-      document.getElementById('contact-success')!.classList.remove('hidden');
+    document.addEventListener('astro:page-load', () => {
+      const form = document.getElementById('contact-form') as HTMLFormElement | null;
+      const msg = document.getElementById('contact-success');
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(form).entries());
+        const res = await fetch('/api/contact', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
+        const out = (await res.json()) as { ok?: boolean; error?: string };
+        if (msg) { msg.textContent = out.ok ? 'Mensagem enviada. Responderemos em até 24h úteis.' : out.error ?? 'Erro ao enviar.'; msg.classList.remove('hidden'); }
+        if (out.ok) form.reset();
+      });
     });
   </script>
 </BaseLayout>

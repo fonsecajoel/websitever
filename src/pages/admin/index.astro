@@ -1,54 +1,181 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { getProductsFromDB } from '../../lib/db';
+import { supabaseForRequest } from '../../lib/server/supabase';
+import { mapProduct, type ProductRow } from '../../lib/server/catalog';
+import { formatBRL } from '../../lib/pricing';
+import { ORDER_STATUS_LABEL } from '../../lib/types';
+import { STATUS_TONE, fmtDate, type OrderRow } from '../../lib/server/admin/helpers';
 
-const products = await getProductsFromDB();
-const totalProducts = products.length;
-const totalValue = products.reduce((sum, p) => sum + p.price, 0);
+const sb = supabaseForRequest(Astro.request, Astro.cookies);
+const since = new Date(Date.now() - 30 * 86400000);
+since.setHours(0, 0, 0, 0);
+
+const [ordersRes, recentRes, productsRes, unreadRes, pendingRes, subsRes] = await Promise.all([
+  sb.from('orders').select('total,payment_status,status,created_at').gte('created_at', since.toISOString()),
+  sb.from('orders').select('id,number,email,total,status,payment_method,created_at,customer_snapshot').order('created_at', { ascending: false }).limit(8),
+  sb.from('products').select('*').eq('active', true),
+  sb.from('contact_messages').select('id', { count: 'exact', head: true }).eq('read', false),
+  sb.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+  sb.from('newsletter_subscribers').select('email', { count: 'exact', head: true }),
+]);
+
+type MiniOrder = Pick<OrderRow, 'total' | 'payment_status' | 'status' | 'created_at'>;
+const orders = (ordersRes.data ?? []) as MiniOrder[];
+const paid = orders.filter((o) => o.payment_status === 'paid');
+const revenue = paid.reduce((s, o) => s + Number(o.total), 0);
+const avgTicket = paid.length ? revenue / paid.length : 0;
+
+// série diária 30 dias
+const days: { key: string; label: string; value: number; count: number }[] = [];
+for (let i = 29; i >= 0; i--) {
+  const d = new Date(Date.now() - i * 86400000);
+  const key = d.toISOString().slice(0, 10);
+  days.push({ key, label: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(d), value: 0, count: 0 });
+}
+for (const o of orders) {
+  const day = days.find((d) => d.key === o.created_at.slice(0, 10));
+  if (!day) continue;
+  day.count += 1;
+  if (o.payment_status === 'paid') day.value += Number(o.total);
+}
+const maxV = Math.max(1, ...days.map((d) => d.value));
+const W = 720, H = 220, P = 8;
+const step = (W - P * 2) / (days.length - 1);
+const pts = days.map((d, i) => [P + i * step, H - 24 - (d.value / maxV) * (H - 48)] as const);
+const line = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${H - 24} L${pts[0][0].toFixed(1)},${H - 24} Z`;
+
+const recent = (recentRes.data ?? []) as Pick<OrderRow, 'id' | 'number' | 'email' | 'total' | 'status' | 'payment_method' | 'created_at' | 'customer_snapshot'>[];
+const products = ((productsRes.data ?? []) as ProductRow[]).map(mapProduct);
+const lowStock = products
+  .map((p) => ({ p, low: p.sizes.filter((s) => s.stock <= 2) }))
+  .filter((x) => x.low.length > 0)
+  .sort((a, b) => b.low.length - a.low.length)
+  .slice(0, 8);
+
+const kpis = [
+  { label: 'Receita paga · 30 dias', value: formatBRL(revenue), hint: `${paid.length} encomendas pagas` },
+  { label: 'Encomendas · 30 dias', value: String(orders.length), hint: `${orders.filter((o) => o.status === 'cancelled').length} canceladas` },
+  { label: 'Ticket médio', value: formatBRL(avgTicket), hint: 'sobre encomendas pagas' },
+  { label: 'A aguardar pagamento', value: String(pendingRes.count ?? 0), hint: 'estado pendente', href: '/admin/encomendas?status=pending' },
+];
+const loadError = ordersRes.error?.message ?? productsRes.error?.message ?? null;
 ---
+<AdminLayout title="Painel" active="dashboard" subtitle={new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full' }).format(new Date())}>
+  <a slot="actions" href="/admin/produtos/novo" class="a-btn a-btn-primary hidden sm:inline-flex">+ Novo produto</a>
 
-<AdminLayout title="Dashboard">
-  <div class="admin-header">
-    <h2>Dashboard</h2>
-  </div>
+  {loadError && <div class="a-flash a-flash-err">Erro ao ler dados: {loadError}. Confirme que executou a migração SQL.</div>}
 
-  <div class="form-grid" style="margin-bottom: 2rem;">
-    <div class="card">
-      <p style="color: #666; font-size: 0.85rem; margin-bottom: 0.25rem;">Total Produtos</p>
-      <p style="font-size: 2rem; font-weight: 700;">{totalProducts}</p>
-    </div>
-    <div class="card">
-      <p style="color: #666; font-size: 0.85rem; margin-bottom: 0.25rem;">Valor Médio</p>
-      <p style="font-size: 2rem; font-weight: 700;">R$ {Math.round(totalValue / totalProducts)}</p>
-    </div>
-  </div>
+  <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    {kpis.map((k, i) => (
+      <a href={k.href ?? '#'} class={`a-card p-5 block relative overflow-hidden ${k.href ? 'hover:-translate-y-0.5 transition-transform' : 'pointer-events-none'}`}>
+        {i === 0 && <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full" style="background: radial-gradient(circle, rgba(226,188,68,.35), transparent 70%)"></div>}
+        <p class="a-eyebrow">{k.label}</p>
+        <p class="font-display text-[34px] leading-tight mt-2 text-ink">{k.value}</p>
+        <p class="text-[12px] text-taupe mt-1">{k.hint}</p>
+      </a>
+    ))}
+  </section>
 
-  <div class="card">
-    <h3 style="margin-bottom: 1rem;">Últimos Produtos</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Foto</th>
-          <th>Nome</th>
-          <th>Preço</th>
-          <th>Categoria</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        {products.slice(0, 5).map(p => (
-          <tr>
-            <td><img src={p.images[0]?.src} alt="" class="product-thumb" /></td>
-            <td>{p.name}</td>
-            <td>R$ {p.price}</td>
-            <td><span class="badge badge-green">{p.category}</span></td>
-            <td><a href={`/admin/produtos/${p.id}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Editar</a></td>
-          </tr>
+  <section class="grid xl:grid-cols-3 gap-6">
+    <div class="a-card p-6 xl:col-span-2">
+      <div class="flex items-end justify-between mb-4">
+        <div>
+          <p class="a-eyebrow">Receita diária</p>
+          <h2 class="text-2xl mt-1">Últimos 30 dias</h2>
+        </div>
+        <p class="text-[12px] text-taupe">Pico: {formatBRL(maxV === 1 && revenue === 0 ? 0 : maxV)}</p>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} class="w-full h-auto" role="img" aria-label="Gráfico de receita diária">
+        <defs>
+          <linearGradient id="rev" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#C0392B" stop-opacity=".35" />
+            <stop offset="100%" stop-color="#C0392B" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        {[0.25, 0.5, 0.75].map((f) => (
+          <line x1={P} x2={W - P} y1={24 + f * (H - 48)} y2={24 + f * (H - 48)} stroke="#6B0E09" stroke-opacity=".06" />
         ))}
-      </tbody>
-    </table>
-    <div style="margin-top: 1rem;">
-      <a href="/admin/produtos" class="btn btn-secondary">Ver todos →</a>
+        <path d={area} fill="url(#rev)" />
+        <path d={line} fill="none" stroke="#C0392B" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" />
+        {pts.map(([x, y], i) => (
+          <g>
+            <circle cx={x} cy={y} r={days[i].value > 0 ? 3.2 : 0} fill="#fff" stroke="#C0392B" stroke-width="1.8" />
+            <rect x={x - step / 2} y="0" width={step} height={H} fill="transparent">
+              <title>{`${days[i].label}: ${formatBRL(days[i].value)} · ${days[i].count} encomenda(s)`}</title>
+            </rect>
+          </g>
+        ))}
+        {days.map((d, i) => i % 5 === 0 || i === days.length - 1 ? (
+          <text x={pts[i][0]} y={H - 6} text-anchor="middle" font-size="10" fill="#C4958E">{d.label}</text>
+        ) : null)}
+      </svg>
     </div>
-  </div>
+
+    <div class="a-card p-6 flex flex-col gap-4">
+      <p class="a-eyebrow">Atalhos</p>
+      <a href="/admin/mensagens" class="flex items-center justify-between rounded-2xl p-4 bg-blush/50 hover:bg-blush transition-colors">
+        <span class="font-medium">Mensagens por ler</span>
+        <span class={`a-pill ${(unreadRes.count ?? 0) > 0 ? 'tone-red' : 'tone-gray'}`}>{unreadRes.count ?? 0}</span>
+      </a>
+      <a href="/admin/newsletter" class="flex items-center justify-between rounded-2xl p-4 bg-blush/50 hover:bg-blush transition-colors">
+        <span class="font-medium">Subscritoras newsletter</span>
+        <span class="a-pill tone-violet">{subsRes.count ?? 0}</span>
+      </a>
+      <a href="/admin/produtos" class="flex items-center justify-between rounded-2xl p-4 bg-blush/50 hover:bg-blush transition-colors">
+        <span class="font-medium">Produtos ativos</span>
+        <span class="a-pill tone-blue">{products.length}</span>
+      </a>
+      <a href="/admin/cupoes" class="a-btn a-btn-gold mt-auto">Criar cupão de desconto</a>
+    </div>
+  </section>
+
+  <section class="grid xl:grid-cols-3 gap-6">
+    <div class="a-card xl:col-span-2 overflow-hidden">
+      <div class="flex items-center justify-between p-6 pb-3">
+        <h2 class="text-2xl">Encomendas recentes</h2>
+        <a href="/admin/encomendas" class="text-[12px] font-semibold text-brand-red hover:underline">Ver todas →</a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="a-table">
+          <thead><tr><th>#</th><th>Cliente</th><th>Data</th><th>Pagamento</th><th>Estado</th><th class="text-right">Total</th></tr></thead>
+          <tbody>
+            {recent.length === 0 && <tr><td colspan="6" class="text-center text-taupe py-10">Ainda não há encomendas.</td></tr>}
+            {recent.map((o) => (
+              <tr class="cursor-pointer" onclick={`location.href='/admin/encomendas/${o.id}'`}>
+                <td class="font-semibold"><a href={`/admin/encomendas/${o.id}`}>#{o.number}</a></td>
+                <td><p class="font-medium">{[o.customer_snapshot?.firstName, o.customer_snapshot?.lastName].filter(Boolean).join(' ') || '—'}</p><p class="text-[12px] text-taupe">{o.email}</p></td>
+                <td class="text-[12.5px] text-mocha whitespace-nowrap">{fmtDate(o.created_at)}</td>
+                <td class="uppercase text-[11px] font-semibold tracking-wider">{o.payment_method === 'pix' ? 'Pix' : 'Stripe'}</td>
+                <td><span class={`a-pill ${STATUS_TONE[o.status]}`}>{ORDER_STATUS_LABEL[o.status]}</span></td>
+                <td class="text-right font-semibold whitespace-nowrap">{formatBRL(Number(o.total))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="a-card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-2xl">Stock baixo</h2>
+        <span class="a-pill tone-amber">≤ 2 unid.</span>
+      </div>
+      {lowStock.length === 0 ? <p class="text-taupe text-[13px]">Tudo com stock confortável. ✨</p> : (
+        <ul class="space-y-3">
+          {lowStock.map(({ p, low }) => (
+            <li>
+              <a href={`/admin/produtos/${p.id}`} class="flex items-center gap-3 group">
+                <img src={p.images[0]?.src ?? '/logo-navbar.png'} alt="" class="w-11 h-11 rounded-xl object-cover bg-cream" loading="lazy" />
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium truncate group-hover:text-brand-red">{p.name}</p>
+                  <p class="text-[11.5px] text-taupe truncate">{low.map((s) => `${s.label}: ${s.stock}`).join(' · ')}</p>
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </section>
 </AdminLayout>

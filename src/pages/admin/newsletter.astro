@@ -1,0 +1,38 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseForRequest } from '../../lib/server/supabase';
+import { fmtDate, str } from '../../lib/server/admin/helpers';
+
+const sb = supabaseForRequest(Astro.request, Astro.cookies);
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  const { error } = await sb.from('newsletter_subscribers').delete().eq('email', str(fd, 'email'));
+  return Astro.redirect(`/admin/newsletter?${error ? `err=${encodeURIComponent(error.message)}` : `msg=${encodeURIComponent('Subscrição removida.')}`}`);
+}
+const { data, error } = await sb.from('newsletter_subscribers').select('*').order('created_at', { ascending: false });
+const subs = (data ?? []) as { email: string; source: string; created_at: string }[];
+---
+<AdminLayout title="Newsletter" active="newsletter" subtitle={`${subs.length} subscritora(s)`}>
+  <a slot="actions" href="/api/admin/newsletter.csv" class="a-btn a-btn-gold">↓ Exportar CSV</a>
+  {error && <div class="a-flash a-flash-err">{error.message}</div>}
+  <div class="a-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="a-table">
+        <thead><tr><th>E-mail</th><th>Origem</th><th>Data</th><th></th></tr></thead>
+        <tbody>
+          {subs.length === 0 && <tr><td colspan="4" class="text-center py-12 text-taupe">Ainda sem subscrições.</td></tr>}
+          {subs.map((s) => (
+            <tr>
+              <td class="font-medium"><a href={`mailto:${s.email}`} class="hover:text-brand-red">{s.email}</a></td>
+              <td><span class="a-pill tone-gray">{s.source}</span></td>
+              <td class="text-[12.5px] text-mocha">{fmtDate(s.created_at)}</td>
+              <td class="text-right">
+                <form method="POST" data-confirm={`Remover ${s.email}?`}><input type="hidden" name="email" value={s.email} /><button class="a-btn a-btn-danger a-btn-sm">Remover</button></form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>

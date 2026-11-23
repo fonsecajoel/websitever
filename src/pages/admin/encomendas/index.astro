@@ -1,0 +1,84 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { supabaseForRequest } from '../../../lib/server/supabase';
+import { formatBRL } from '../../../lib/pricing';
+import { ORDER_STATUS_LABEL, type OrderStatus } from '../../../lib/types';
+import { PAYMENT_STATUS_LABEL, STATUS_TONE, fmtDate, type OrderRow } from '../../../lib/server/admin/helpers';
+
+const sb = supabaseForRequest(Astro.request, Astro.cookies);
+const status = (Astro.url.searchParams.get('status') ?? '') as OrderStatus | '';
+const q = Astro.url.searchParams.get('q')?.trim() ?? '';
+const page = Math.max(1, Number(Astro.url.searchParams.get('p')) || 1);
+const PER = 25;
+
+let query = sb.from('orders')
+  .select('id,number,email,status,payment_method,payment_status,total,created_at,customer_snapshot,shipping_method', { count: 'exact' })
+  .order('created_at', { ascending: false })
+  .range((page - 1) * PER, page * PER - 1);
+if (status) query = query.eq('status', status);
+if (q) {
+  const clean = q.replace(/[%,()#]/g, '');
+  query = /^\d+$/.test(clean) ? query.eq('number', Number(clean)) : query.ilike('email', `%${clean}%`);
+}
+const { data, error, count } = await query;
+type Row = Pick<OrderRow, 'id' | 'number' | 'email' | 'status' | 'payment_method' | 'payment_status' | 'total' | 'created_at' | 'customer_snapshot' | 'shipping_method'>;
+const orders = (data ?? []) as Row[];
+const pages = Math.max(1, Math.ceil((count ?? 0) / PER));
+const statuses = Object.keys(ORDER_STATUS_LABEL) as OrderStatus[];
+const link = (p: number): string => {
+  const u = new URLSearchParams(Astro.url.searchParams);
+  u.set('p', String(p));
+  return `?${u.toString()}`;
+};
+---
+<AdminLayout title="Encomendas" active="encomendas" subtitle={`${count ?? 0} encomenda(s)`}>
+  {error && <div class="a-flash a-flash-err">{error.message}</div>}
+
+  <div class="flex flex-wrap gap-2">
+    <a href="/admin/encomendas" class={`a-btn a-btn-sm ${status === '' ? 'a-btn-primary' : 'a-btn-ghost'}`}>Todas</a>
+    {statuses.map((s) => (
+      <a href={`?status=${s}`} class={`a-btn a-btn-sm ${status === s ? 'a-btn-primary' : 'a-btn-ghost'}`}>{ORDER_STATUS_LABEL[s]}</a>
+    ))}
+  </div>
+
+  <form method="GET" class="a-card p-4 flex gap-3 items-end">
+    {status && <input type="hidden" name="status" value={status} />}
+    <div class="flex-1">
+      <label class="a-label" for="q">Pesquisar</label>
+      <input class="a-input" id="q" name="q" value={q} placeholder="Nº da encomenda ou e-mail" />
+    </div>
+    <button class="a-btn a-btn-ghost">Procurar</button>
+  </form>
+
+  <div class="a-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="a-table">
+        <thead><tr><th>#</th><th>Cliente</th><th>Data</th><th>Pagamento</th><th>Estado</th><th class="text-right">Total</th></tr></thead>
+        <tbody>
+          {orders.length === 0 && <tr><td colspan="6" class="text-center text-taupe py-12">Sem encomendas para estes filtros.</td></tr>}
+          {orders.map((o) => (
+            <tr class="cursor-pointer" onclick={`location.href='/admin/encomendas/${o.id}'`}>
+              <td class="font-semibold"><a href={`/admin/encomendas/${o.id}`}>#{o.number}</a></td>
+              <td><p class="font-medium">{[o.customer_snapshot?.firstName, o.customer_snapshot?.lastName].filter(Boolean).join(' ') || '—'}</p><p class="text-[12px] text-taupe">{o.email}</p></td>
+              <td class="text-[12.5px] text-mocha whitespace-nowrap">{fmtDate(o.created_at)}</td>
+              <td>
+                <p class="uppercase text-[11px] font-semibold tracking-wider">{o.payment_method === 'pix' ? 'Pix' : 'Cartão · Stripe'}</p>
+                <span class={`a-pill !text-[10px] ${o.payment_status === 'paid' ? 'tone-green' : o.payment_status === 'failed' ? 'tone-red' : 'tone-gray'}`}>{PAYMENT_STATUS_LABEL[o.payment_status]}</span>
+              </td>
+              <td><span class={`a-pill ${STATUS_TONE[o.status]}`}>{ORDER_STATUS_LABEL[o.status]}</span></td>
+              <td class="text-right font-semibold whitespace-nowrap">{formatBRL(Number(o.total))}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {pages > 1 && (
+    <nav class="flex justify-center gap-2">
+      {page > 1 && <a href={link(page - 1)} class="a-btn a-btn-ghost a-btn-sm">← Anterior</a>}
+      <span class="text-[12px] text-taupe self-center">Página {page} de {pages}</span>
+      {page < pages && <a href={link(page + 1)} class="a-btn a-btn-ghost a-btn-sm">Seguinte →</a>}
+    </nav>
+  )}
+</AdminLayout>

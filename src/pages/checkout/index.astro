@@ -1,239 +1,278 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getSettings } from '../../lib/server/catalog';
+import { SHIPPING_OPTIONS, formatBRL } from '../../lib/pricing';
+import { isStripeConfigured } from '../../lib/env';
+
+const settings = await getSettings();
+const stripeOn = isStripeConfigured();
+const cancelled = Astro.url.searchParams.has('cancelado');
+const cfg = { threshold: settings.freeShippingThreshold, pixPct: settings.pixDiscountPercent, shipping: SHIPPING_OPTIONS };
 ---
 
-<BaseLayout title="Checkout — AURÉLIA" description="Finalize a sua encomenda AURÉLIA." noIndex>
-  <section class="bg-bone min-h-screen py-12 lg:py-20">
-    <div class="container-aurelia max-w-6xl">
-      <div class="text-center mb-10">
-        <a href="/" class="font-display text-3xl tracking-[0.18em]">AURÉLIA</a>
-        <p class="eyebrow mt-3 text-mocha">Finalização segura</p>
+<BaseLayout title="Checkout" noIndex noFooter>
+  <section class="min-h-screen py-10 lg:py-16 bg-gradient-to-b from-bone to-cream">
+    <div class="container-site max-w-6xl">
+      <div class="flex items-center justify-between mb-10">
+        <h1 class="display-md">Finalizar <em class="text-brand">compra</em></h1>
+        <p class="text-[11px] uppercase tracking-[0.2em] text-mocha flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg> Pagamento seguro
+        </p>
       </div>
 
-      <ol id="checkout-steps" class="flex justify-center gap-2 md:gap-8 mb-12 text-xs uppercase tracking-[0.18em] text-taupe">
-        <li data-step-label="1" class="flex items-center gap-2 step-active"><span class="step-dot">1</span> Identificação</li>
-        <li data-step-label="2" class="flex items-center gap-2"><span class="step-dot">2</span> Envio</li>
-        <li data-step-label="3" class="flex items-center gap-2"><span class="step-dot">3</span> Pagamento</li>
-        <li data-step-label="4" class="flex items-center gap-2"><span class="step-dot">4</span> Confirmação</li>
+      {cancelled && <p class="mb-6 rounded-2xl bg-blush text-cocoa px-5 py-4 text-sm">O pagamento com cartão foi cancelado. A sua sacola continua aqui — pode tentar de novo ou escolher Pix.</p>}
+
+      <ol class="flex gap-2 mb-10" data-steps>
+        {['Os seus dados', 'Entrega', 'Pagamento'].map((s, i) => (
+          <li class="flex-1">
+            <div class="h-1 rounded-full bg-sand overflow-hidden"><span class="block h-full bg-brand transition-[width] duration-700" style={i === 0 ? 'width:100%' : 'width:0%'} data-step-bar={i}></span></div>
+            <p class="mt-2 text-[10px] uppercase tracking-[0.2em] text-mocha">{String(i + 1).padStart(2, '0')} · {s}</p>
+          </li>
+        ))}
       </ol>
 
-      <div class="grid lg:grid-cols-[1.3fr,1fr] gap-10 lg:gap-16">
-        <div>
-          <form id="checkout-form" class="space-y-10">
-            <fieldset data-step="1" class="step-panel">
-              <legend class="display-md mb-6">Identificação</legend>
-              <div class="grid sm:grid-cols-2 gap-4">
-                <label class="field"><span>Nome</span><input required name="firstName" type="text" /></label>
-                <label class="field"><span>Apelido</span><input required name="lastName" type="text" /></label>
-                <label class="field sm:col-span-2"><span>E-mail</span><input required name="email" type="email" /></label>
-                <label class="field sm:col-span-2"><span>CPF</span><input required name="cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" /></label>
-                <label class="field sm:col-span-2"><span>Telefone</span><input required name="phone" type="tel" placeholder="(11) 90000-0000" /></label>
-              </div>
-              <div class="mt-8 flex justify-end">
-                <button type="button" data-next class="btn-primary">Continuar para envio</button>
-              </div>
-            </fieldset>
+      <div class="grid lg:grid-cols-[1.35fr_1fr] gap-8 lg:gap-14">
+        <form id="checkout-form" class="space-y-6" novalidate data-config={JSON.stringify(cfg)}>
+          <fieldset data-step="0" class="card">
+            <legend class="card-title">Os seus dados</legend>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <label class="field"><span>Nome</span><input required name="firstName" autocomplete="given-name" /></label>
+              <label class="field"><span>Sobrenome</span><input required name="lastName" autocomplete="family-name" /></label>
+              <label class="field sm:col-span-2"><span>E-mail</span><input required name="email" type="email" autocomplete="email" /></label>
+              <label class="field"><span>CPF</span><input required name="cpf" inputmode="numeric" placeholder="000.000.000-00" data-mask="cpf" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" /></label>
+              <label class="field"><span>Telemóvel / WhatsApp</span><input required name="phone" type="tel" autocomplete="tel" placeholder="(11) 90000-0000" data-mask="phone" /></label>
+            </div>
+            <div class="mt-8 flex justify-end"><button type="button" class="btn-primary" data-next>Continuar →</button></div>
+          </fieldset>
 
-            <fieldset data-step="2" class="step-panel hidden">
-              <legend class="display-md mb-6">Endereço de envio</legend>
-              <div class="grid sm:grid-cols-2 gap-4">
-                <label class="field"><span>CEP</span><input required name="zip" type="text" inputmode="numeric" placeholder="00000-000" /></label>
-                <label class="field"><span>Estado</span><input required name="state" type="text" /></label>
-                <label class="field sm:col-span-2"><span>Endereço</span><input required name="address" type="text" /></label>
-                <label class="field"><span>Número</span><input required name="number" type="text" /></label>
-                <label class="field"><span>Complemento</span><input name="complement" type="text" /></label>
-                <label class="field"><span>Bairro</span><input required name="neighborhood" type="text" /></label>
-                <label class="field"><span>Cidade</span><input required name="city" type="text" /></label>
-              </div>
-
-              <div class="mt-8 space-y-3">
-                <p class="eyebrow text-mocha">Modalidade de envio</p>
-                <label class="ship-option"><input type="radio" name="shipping" value="standard" checked /><span><strong>Standard</strong> — 5 a 8 dias úteis · Grátis</span></label>
-                <label class="ship-option"><input type="radio" name="shipping" value="express" /><span><strong>Express</strong> — 2 a 3 dias úteis · R$ 49,90</span></label>
-                <label class="ship-option"><input type="radio" name="shipping" value="same-day" /><span><strong>Same-day SP</strong> — Hoje, capital · R$ 89,90</span></label>
-              </div>
-
-              <div class="mt-8 flex justify-between">
-                <button type="button" data-prev class="btn-ghost">Voltar</button>
-                <button type="button" data-next class="btn-primary">Continuar para pagamento</button>
-              </div>
-            </fieldset>
-
-            <fieldset data-step="3" class="step-panel hidden">
-              <legend class="display-md mb-6">Pagamento</legend>
-
-              <div class="space-y-3 mb-8">
-                <label class="ship-option"><input type="radio" name="payMethod" value="card" checked /><span><strong>Cartão de crédito</strong> — até 6x sem juros</span></label>
-                <label class="ship-option"><input type="radio" name="payMethod" value="pix" /><span><strong>PIX</strong> — 5% de desconto à vista</span></label>
-                <label class="ship-option"><input type="radio" name="payMethod" value="boleto" /><span><strong>Boleto bancário</strong> — vencimento em 3 dias</span></label>
-              </div>
-
-              <div data-card-fields class="grid sm:grid-cols-2 gap-4">
-                <label class="field sm:col-span-2"><span>Número do cartão</span><input name="cardNumber" type="text" inputmode="numeric" placeholder="0000 0000 0000 0000" autocomplete="cc-number" /></label>
-                <label class="field sm:col-span-2"><span>Nome impresso</span><input name="cardName" type="text" autocomplete="cc-name" /></label>
-                <label class="field"><span>Validade</span><input name="cardExp" type="text" placeholder="MM/AA" autocomplete="cc-exp" /></label>
-                <label class="field"><span>CVV</span><input name="cardCvv" type="text" inputmode="numeric" placeholder="000" autocomplete="cc-csc" /></label>
-                <label class="field sm:col-span-2"><span>Parcelas</span>
-                  <select name="installments">
-                    <option>1x à vista</option><option>2x sem juros</option><option>3x sem juros</option>
-                    <option>4x sem juros</option><option>5x sem juros</option><option>6x sem juros</option>
-                  </select>
+          <fieldset data-step="1" class="card hidden">
+            <legend class="card-title">Entrega</legend>
+            <div class="grid sm:grid-cols-6 gap-4">
+              <label class="field sm:col-span-2"><span>CEP</span><input required name="zip" inputmode="numeric" placeholder="00000-000" data-mask="cep" pattern="\d{5}-\d{3}" autocomplete="postal-code" /></label>
+              <p class="sm:col-span-4 self-end text-xs text-mocha pb-3" data-cep-msg>Preenchemos a morada automaticamente ✦</p>
+              <label class="field sm:col-span-4"><span>Rua / Avenida</span><input required name="address" autocomplete="address-line1" /></label>
+              <label class="field sm:col-span-2"><span>Número</span><input required name="number" /></label>
+              <label class="field sm:col-span-3"><span>Complemento</span><input name="complement" autocomplete="address-line2" /></label>
+              <label class="field sm:col-span-3"><span>Bairro</span><input required name="neighborhood" /></label>
+              <label class="field sm:col-span-4"><span>Cidade</span><input required name="city" autocomplete="address-level2" /></label>
+              <label class="field sm:col-span-2"><span>UF</span><input required name="state" maxlength="2" autocomplete="address-level1" /></label>
+            </div>
+            <p class="eyebrow mt-8 mb-3">Modalidade</p>
+            <div class="space-y-3">
+              {Object.entries(SHIPPING_OPTIONS).map(([key, o], i) => (
+                <label class="option">
+                  <input type="radio" name="shippingMethod" value={key} checked={i === 0} />
+                  <span class="flex-1"><strong class="text-ink font-medium">{o.label}</strong><span class="block text-xs text-mocha">{o.eta}</span></span>
+                  <span class="text-sm text-ink" data-ship-price={key}>{formatBRL(o.price)}</span>
                 </label>
-              </div>
+              ))}
+            </div>
+            <div class="mt-8 flex justify-between"><button type="button" class="btn-ghost text-ink" data-prev>← Voltar</button><button type="button" class="btn-primary" data-next>Pagamento →</button></div>
+          </fieldset>
 
-              <div class="mt-8 flex justify-between">
-                <button type="button" data-prev class="btn-ghost">Voltar</button>
-                <button type="submit" class="btn-primary">Finalizar pedido</button>
-              </div>
-            </fieldset>
+          <fieldset data-step="2" class="card hidden">
+            <legend class="card-title">Pagamento</legend>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <label class="pay-option">
+                <input type="radio" name="paymentMethod" value="pix" checked class="sr-only peer" />
+                <span class="pay-card">
+                  <span class="flex justify-between items-start">
+                    <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true"><path fill="#32BCAD" d="M37.4 36.6a5.6 5.6 0 01-4-1.7l-5.8-5.8a1.1 1.1 0 00-1.5 0L20.3 35a5.6 5.6 0 01-4 1.6h-1.1l7.4 7.4a5.9 5.9 0 008.4 0l7.4-7.4zM16.3 11.4a5.6 5.6 0 014 1.6l5.8 5.9a1.1 1.1 0 001.5 0l5.8-5.8a5.6 5.6 0 014-1.7h.7l-7.4-7.4a5.9 5.9 0 00-8.4 0l-7.4 7.4z"/><path fill="#32BCAD" d="M44 19.8l-4.5-4.5a.8.8 0 01-.3.1h-2a4 4 0 00-2.8 1.2l-5.8 5.8a2.7 2.7 0 01-3.9 0l-5.8-5.9a4 4 0 00-2.8-1.1h-2.5a.8.8 0 01-.3-.1L4 19.8a5.9 5.9 0 000 8.4l4.5 4.5a.8.8 0 01.3-.1h2.5a4 4 0 002.8-1.1l5.8-5.9a2.8 2.8 0 013.9 0l5.8 5.8a4 4 0 002.8 1.2h2a.8.8 0 01.3.1L44 28.2a5.9 5.9 0 000-8.4"/></svg>
+                    <span class="chip bg-brand text-bone">−{settings.pixDiscountPercent}%</span>
+                  </span>
+                  <strong class="font-display text-2xl text-ink mt-4 block">Pix</strong>
+                  <span class="text-xs text-mocha">QR Code com valor exato · aprovação imediata</span>
+                </span>
+              </label>
+              <label class:list={['pay-option', { 'opacity-50 pointer-events-none': !stripeOn }]}>
+                <input type="radio" name="paymentMethod" value="stripe" disabled={!stripeOn} class="sr-only peer" />
+                <span class="pay-card">
+                  <span class="flex justify-between items-start">
+                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#635BFF" stroke-width="1.6" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6 15h4"/></svg>
+                    <span class="chip bg-ink text-bone">até 6x</span>
+                  </span>
+                  <strong class="font-display text-2xl text-ink mt-4 block">Cartão · Stripe</strong>
+                  <span class="text-xs text-mocha">{stripeOn ? 'Visa, Master, Amex, Apple Pay, Google Pay' : 'Em breve'}</span>
+                </span>
+              </label>
+            </div>
+            <p class="text-xs text-mocha mt-5 leading-relaxed">Ao confirmar, aceita os <a href="/termos" class="link-underline text-brand" target="_blank">Termos</a> e a <a href="/privacidade" class="link-underline text-brand" target="_blank">Política de Privacidade</a>. Os dados do cartão são tratados diretamente pelo Stripe — nunca passam pelos nossos servidores.</p>
+            <p data-error class="hidden mt-5 rounded-2xl bg-blush text-cocoa px-4 py-3 text-sm" role="alert"></p>
+            <div class="mt-8 flex justify-between gap-3"><button type="button" class="btn-ghost text-ink" data-prev>← Voltar</button><button type="submit" class="btn-primary flex-1 sm:flex-none" data-submit>Confirmar encomenda</button></div>
+          </fieldset>
+        </form>
 
-            <fieldset data-step="4" class="step-panel hidden text-center py-12">
-              <div class="w-16 h-16 mx-auto mb-6 border border-gold rounded-full flex items-center justify-center">
-                <svg viewBox="0 0 24 24" class="w-8 h-8 text-gold" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <p class="eyebrow mb-3 text-gold">Pedido confirmado</p>
-              <h2 class="display-md mb-4">Obrigado, <span data-confirm-name>cliente</span>.</h2>
-              <p class="text-mocha max-w-md mx-auto mb-8">
-                Enviamos um e-mail com o número do pedido <strong data-order-id>—</strong> e o resumo da encomenda. O seu par será preparado com cuidado no nosso ateliê.
-              </p>
-              <a href="/" class="btn-ghost">Voltar à página inicial</a>
-            </fieldset>
-          </form>
-        </div>
-
-        <aside class="lg:sticky lg:top-32 self-start bg-cream p-6 lg:p-8 border border-taupe/15">
-          <p class="eyebrow mb-4 text-mocha">Resumo do pedido</p>
-          <ul id="checkout-items" class="space-y-4 mb-6"></ul>
-          <div id="checkout-empty" class="hidden text-center py-10">
-            <p class="text-mocha mb-4">O seu carrinho está vazio.</p>
-            <a href="/" class="btn-ghost">Continuar a comprar</a>
+        <aside class="lg:sticky lg:top-8 self-start card !p-0 overflow-hidden">
+          <div class="p-6 border-b border-taupe/20 flex justify-between items-baseline"><p class="card-title !mb-0">Resumo</p><a href="/" class="text-[11px] uppercase tracking-[0.2em] text-mocha link-underline">Continuar a comprar</a></div>
+          <ul class="divide-y divide-taupe/15 max-h-[40vh] overflow-y-auto px-6" data-summary></ul>
+          <div class="p-6 border-t border-taupe/20">
+            <div class="flex gap-2">
+              <input class="input !rounded-full !py-3 uppercase" placeholder="Cupão" data-coupon-input aria-label="Cupão de desconto" />
+              <button type="button" class="btn-ghost text-ink !py-3 !px-5" data-coupon-apply>Aplicar</button>
+            </div>
+            <p class="text-xs mt-2 min-h-4" data-coupon-msg></p>
+            <dl class="space-y-2 text-sm mt-4">
+              <div class="flex justify-between"><dt class="text-mocha">Subtotal</dt><dd data-t-sub></dd></div>
+              <div class="flex justify-between text-brand hidden" data-row-coupon><dt>Cupão</dt><dd data-t-coupon></dd></div>
+              <div class="flex justify-between text-brand hidden" data-row-pix><dt>Desconto Pix</dt><dd data-t-pix></dd></div>
+              <div class="flex justify-between"><dt class="text-mocha">Frete</dt><dd data-t-ship></dd></div>
+              <div class="flex justify-between items-baseline pt-4 border-t border-taupe/20"><dt class="eyebrow">Total</dt><dd class="font-display text-4xl text-ink" data-t-total></dd></div>
+            </dl>
           </div>
-          <dl class="space-y-2 text-sm border-t border-taupe/20 pt-4">
-            <div class="flex justify-between"><dt>Subtotal</dt><dd data-subtotal>R$ 0,00</dd></div>
-            <div class="flex justify-between text-mocha"><dt>Envio</dt><dd data-shipping>Grátis</dd></div>
-            <div class="flex justify-between font-display text-xl pt-3 border-t border-taupe/20 mt-3"><dt>Total</dt><dd data-total>R$ 0,00</dd></div>
-          </dl>
         </aside>
       </div>
     </div>
   </section>
-
-  <style>
-    .step-panel legend { padding: 0; }
-    .field { display: block; }
-    .field span { display: block; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-mocha); margin-bottom: 6px; }
-    .field input, .field select {
-      width: 100%; padding: 14px 16px; background: white;
-      border: 1px solid rgb(168 152 132 / 0.3); font-family: inherit; font-size: 15px; color: var(--color-ink);
-      transition: border-color 0.3s var(--ease-silk);
-    }
-    .field input:focus, .field select:focus { outline: none; border-color: var(--color-cocoa); }
-    .ship-option {
-      display: flex; align-items: center; gap: 14px; padding: 16px 18px;
-      border: 1px solid rgb(168 152 132 / 0.3); cursor: pointer;
-      transition: border-color 0.3s var(--ease-silk), background 0.3s var(--ease-silk);
-    }
-    .ship-option:has(input:checked) { border-color: var(--color-cocoa); background: var(--color-cream); }
-    .ship-option input { accent-color: var(--color-cocoa); }
-    .step-dot {
-      width: 26px; height: 26px; border-radius: 50%; border: 1px solid currentColor;
-      display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
-    }
-    #checkout-steps li.step-active { color: var(--color-cocoa); }
-    #checkout-steps li.step-active .step-dot { background: var(--color-cocoa); color: var(--color-bone); border-color: var(--color-cocoa); }
-  </style>
-
-  <script>
-    import { cartItems, cartSubtotal } from '../../stores/cart';
-    import { products, formatBRL } from '../../data/products';
-
-    const stepPanels = document.querySelectorAll<HTMLFieldSetElement>('[data-step]');
-    const stepLabels = document.querySelectorAll<HTMLLIElement>('[data-step-label]');
-    let currentStep = 1;
-
-    function showStep(n: number) {
-      currentStep = n;
-      stepPanels.forEach((p) => p.classList.toggle('hidden', Number(p.dataset.step) !== n));
-      stepLabels.forEach((l) => l.classList.toggle('step-active', Number(l.dataset.stepLabel) <= n));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    document.querySelectorAll('[data-next]').forEach((btn) =>
-      btn.addEventListener('click', () => {
-        const panel = stepPanels[currentStep - 1];
-        const inputs = panel.querySelectorAll<HTMLInputElement>('input[required]');
-        for (const input of inputs) {
-          if (!input.checkValidity()) { input.reportValidity(); return; }
-        }
-        showStep(currentStep + 1);
-      }),
-    );
-
-    document.querySelectorAll('[data-prev]').forEach((btn) =>
-      btn.addEventListener('click', () => showStep(currentStep - 1)),
-    );
-
-    const itemsEl = document.getElementById('checkout-items')!;
-    const emptyEl = document.getElementById('checkout-empty')!;
-    const subtotalEl = document.querySelector('[data-subtotal]')!;
-    const shippingEl = document.querySelector('[data-shipping]')!;
-    const totalEl = document.querySelector('[data-total]')!;
-
-    function renderSummary() {
-      const items = cartItems.get();
-      if (items.length === 0) {
-        itemsEl.innerHTML = '';
-        emptyEl.classList.remove('hidden');
-      } else {
-        emptyEl.classList.add('hidden');
-        itemsEl.innerHTML = items.map((item) => {
-          const p = products.find((pr) => pr.id === item.productId);
-          if (!p) return '';
-          return `
-            <li class="flex gap-3 text-sm">
-              <img src="${p.images[0].src}" alt="" class="w-16 h-20 object-cover bg-bone" />
-              <div class="flex-1">
-                <p class="font-display text-base leading-tight">${p.name}</p>
-                <p class="text-xs text-mocha mt-1">${item.color} · ${item.size} · Qtd ${item.quantity}</p>
-              </div>
-              <p class="text-sm">${formatBRL(p.price * item.quantity)}</p>
-            </li>`;
-        }).join('');
-      }
-
-      const sub = cartSubtotal.get();
-      const shipMethod = (document.querySelector<HTMLInputElement>('input[name="shipping"]:checked')?.value) ?? 'standard';
-      const shipCost = shipMethod === 'express' ? 49.9 : shipMethod === 'same-day' ? 89.9 : 0;
-      subtotalEl.textContent = formatBRL(sub);
-      shippingEl.textContent = shipCost === 0 ? 'Grátis' : formatBRL(shipCost);
-      totalEl.textContent = formatBRL(sub + shipCost);
-    }
-
-    renderSummary();
-    cartItems.subscribe(renderSummary);
-    document.querySelectorAll('input[name="shipping"]').forEach((r) =>
-      r.addEventListener('change', renderSummary),
-    );
-
-    const cardFields = document.querySelector<HTMLDivElement>('[data-card-fields]')!;
-    document.querySelectorAll('input[name="payMethod"]').forEach((r) =>
-      r.addEventListener('change', (e) => {
-        const v = (e.target as HTMLInputElement).value;
-        cardFields.style.display = v === 'card' ? 'grid' : 'none';
-      }),
-    );
-
-    document.getElementById('checkout-form')!.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const form = e.target as HTMLFormElement;
-      const fd = new FormData(form);
-      const orderId = 'AUR-' + Date.now().toString().slice(-8);
-      document.querySelector('[data-confirm-name]')!.textContent = (fd.get('firstName') as string) || 'cliente';
-      document.querySelector('[data-order-id]')!.textContent = orderId;
-      cartItems.set([]);
-      showStep(4);
-    });
-  </script>
 </BaseLayout>
+
+<style>
+  .card { background: #fff; border-radius: 28px; padding: 1.75rem; box-shadow: var(--shadow-soft); border: 1px solid rgba(196, 149, 142, .2); }
+  @media (min-width: 768px) { .card { padding: 2.25rem; } }
+  .card-title { font-family: var(--font-display); font-size: 1.9rem; color: var(--color-ink); margin-bottom: 1.5rem; }
+  .option { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.2rem; border-radius: 18px; border: 1px solid rgba(196, 149, 142, .35); cursor: pointer; transition: all .3s; }
+  .option:has(input:checked) { border-color: var(--color-brand); background: rgba(245, 220, 218, .4); }
+  .option input { accent-color: var(--color-brand); }
+  .pay-card { display: block; height: 100%; padding: 1.4rem; border-radius: 22px; border: 1px solid rgba(196, 149, 142, .35); cursor: pointer; transition: all .4s var(--ease-silk); }
+  .peer:checked + .pay-card { border-color: var(--color-brand); box-shadow: 0 0 0 3px rgba(192, 57, 43, .12), var(--shadow-soft); transform: translateY(-2px); }
+  .peer:focus-visible + .pay-card { outline: 2px solid var(--color-gold); }
+</style>
+
+<script>
+  import { cartItems, clearCart } from '../../stores/cart';
+  import { formatBRL } from '../../scripts/ui';
+  import { computeTotals, type SHIPPING_OPTIONS } from '../../lib/pricing';
+  import type { ShippingMethod, PaymentMethod } from '../../lib/types';
+
+  document.addEventListener('astro:page-load', () => {
+    const form = document.getElementById('checkout-form') as HTMLFormElement | null;
+    if (!form?.dataset.config) return;
+    const cfg = JSON.parse(form.dataset.config) as { threshold: number; pixPct: number; shipping: typeof SHIPPING_OPTIONS };
+    const items = cartItems.get();
+    if (items.length === 0) { window.location.href = '/colecao/novidades'; return; }
+
+    const $ = <T extends Element>(sel: string): T => document.querySelector<T>(sel)!;
+    const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
+    let coupon: { code: string; discount: number } | null = null;
+    let step = 0;
+
+    // Restaura dados guardados
+    try {
+      const saved = JSON.parse(localStorage.getItem('santosalto:checkout') ?? '{}') as Record<string, string>;
+      for (const [k, v] of Object.entries(saved)) { const el = form.elements.namedItem(k); if (el instanceof HTMLInputElement && el.type !== 'radio') el.value = v; }
+    } catch { /* ignore */ }
+    form.addEventListener('input', () => {
+      const data: Record<string, string> = {};
+      new FormData(form).forEach((v, k) => { if (typeof v === 'string' && !['paymentMethod', 'shippingMethod'].includes(k)) data[k] = v; });
+      try { localStorage.setItem('santosalto:checkout', JSON.stringify(data)); } catch { /* ignore */ }
+    });
+
+    $('[data-summary]').innerHTML = items.map((i) => `
+      <li class="py-4 flex gap-3 items-center">
+        <span class="relative"><img src="${esc(i.image)}" alt="" class="w-16 h-20 rounded-xl object-cover bg-cream" /><span class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-ink text-bone text-[10px] grid place-items-center">${i.quantity}</span></span>
+        <span class="flex-1 min-w-0"><span class="block font-display text-lg text-ink truncate">${esc(i.name)}</span><span class="text-xs text-mocha">${esc(i.color)} · ${esc(i.size)}</span></span>
+        <span class="text-sm">${formatBRL(i.price * i.quantity)}</span>
+      </li>`).join('');
+
+    const recompute = (): void => {
+      const fd = new FormData(form);
+      const ship = (fd.get('shippingMethod') as ShippingMethod | null) ?? 'standard';
+      const pay = (fd.get('paymentMethod') as PaymentMethod | null) ?? 'pix';
+      const t = computeTotals({ lines: items.map((i) => ({ unitPrice: i.price, quantity: i.quantity })), couponDiscount: coupon?.discount ?? 0, shippingMethod: ship, paymentMethod: pay, freeShippingThreshold: cfg.threshold, pixDiscountPercent: cfg.pixPct });
+      $('[data-t-sub]').textContent = formatBRL(t.subtotal);
+      $('[data-row-coupon]').classList.toggle('hidden', !coupon);
+      $('[data-t-coupon]').textContent = `−${formatBRL(coupon?.discount ?? 0)}`;
+      $('[data-row-pix]').classList.toggle('hidden', t.pixDiscount === 0);
+      $('[data-t-pix]').textContent = `−${formatBRL(t.pixDiscount)}`;
+      $('[data-t-ship]').textContent = t.shipping === 0 ? 'Grátis' : formatBRL(t.shipping);
+      $('[data-t-total]').textContent = formatBRL(t.total);
+      const freeEl = form.querySelector('[data-ship-price="standard"]');
+      if (freeEl) freeEl.textContent = t.subtotal >= cfg.threshold ? 'Grátis' : formatBRL(cfg.shipping.standard.price);
+    };
+    form.addEventListener('change', recompute);
+    recompute();
+
+    // Máscaras
+    const masks: Record<string, (d: string) => string> = {
+      cpf: (d) => d.slice(0, 11).replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'),
+      phone: (d) => d.slice(0, 11).replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{1,4})$/, '$1-$2'),
+      cep: (d) => d.slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2'),
+    };
+    form.querySelectorAll<HTMLInputElement>('[data-mask]').forEach((el) => el.addEventListener('input', () => { el.value = masks[el.dataset.mask!](el.value.replace(/\D/g, '')); }));
+
+    // CEP automático (ViaCEP)
+    const zip = form.elements.namedItem('zip') as HTMLInputElement;
+    zip.addEventListener('input', async () => {
+      const d = zip.value.replace(/\D/g, '');
+      if (d.length !== 8) return;
+      const msg = $('[data-cep-msg]');
+      msg.textContent = 'A procurar morada…';
+      try {
+        const r = (await (await fetch(`https://viacep.com.br/ws/${d}/json/`)).json()) as { erro?: boolean; logradouro?: string; bairro?: string; localidade?: string; uf?: string };
+        if (r.erro) { msg.textContent = 'CEP não encontrado — preencha manualmente.'; return; }
+        const set = (n: string, v?: string): void => { const el = form.elements.namedItem(n) as HTMLInputElement; if (v && !el.value) el.value = v; };
+        set('address', r.logradouro); set('neighborhood', r.bairro); set('city', r.localidade); set('state', r.uf);
+        msg.textContent = '✓ Morada encontrada';
+        (form.elements.namedItem('number') as HTMLInputElement).focus();
+      } catch { msg.textContent = 'Preencha a morada manualmente.'; }
+    });
+
+    // Passos
+    const panels = Array.from(form.querySelectorAll<HTMLElement>('[data-step]'));
+    const show = (n: number): void => {
+      step = n;
+      panels.forEach((p, i) => p.classList.toggle('hidden', i !== n));
+      document.querySelectorAll<HTMLElement>('[data-step-bar]').forEach((b, i) => { b.style.width = i <= n ? '100%' : '0%'; });
+      panels[n].querySelector<HTMLInputElement>('input:not([type=radio])')?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    const valid = (n: number): boolean => {
+      const inputs = Array.from(panels[n].querySelectorAll<HTMLInputElement>('input[required]'));
+      const bad = inputs.find((i) => !i.checkValidity());
+      if (bad) { bad.reportValidity(); return false; }
+      return true;
+    };
+    form.querySelectorAll('[data-next]').forEach((b) => b.addEventListener('click', () => { if (valid(step)) show(step + 1); }));
+    form.querySelectorAll('[data-prev]').forEach((b) => b.addEventListener('click', () => show(step - 1)));
+
+    // Cupão
+    $('[data-coupon-apply]').addEventListener('click', async () => {
+      const code = $<HTMLInputElement>('[data-coupon-input]').value.trim().toUpperCase();
+      const msg = $('[data-coupon-msg]');
+      const sub = items.reduce((s, i) => s + i.price * i.quantity, 0);
+      const r = (await (await fetch(`/api/coupon?code=${encodeURIComponent(code)}&subtotal=${sub}`)).json()) as { ok: boolean; code?: string; discount?: number; reason?: string };
+      if (r.ok && r.code && r.discount !== undefined) { coupon = { code: r.code, discount: r.discount }; msg.textContent = `✓ Cupão ${r.code} aplicado`; msg.className = 'text-xs mt-2 min-h-4 text-brand'; }
+      else { coupon = null; msg.textContent = r.reason ?? 'Cupão inválido.'; msg.className = 'text-xs mt-2 min-h-4 text-mocha'; }
+      recompute();
+    });
+
+    // Submeter
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!valid(0) || !valid(1)) return;
+      const fd = new FormData(form);
+      const s = (k: string): string => String(fd.get(k) ?? '');
+      const btn = $<HTMLButtonElement>('[data-submit]');
+      const err = $('[data-error]');
+      btn.disabled = true; btn.textContent = 'A processar…'; err.classList.add('hidden');
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            customer: { firstName: s('firstName'), lastName: s('lastName'), email: s('email'), phone: s('phone'), cpf: s('cpf') },
+            address: { zip: s('zip'), state: s('state'), city: s('city'), neighborhood: s('neighborhood'), address: s('address'), number: s('number'), complement: s('complement') },
+            shippingMethod: s('shippingMethod'), paymentMethod: s('paymentMethod'), couponCode: coupon?.code ?? null,
+            items: items.map((i) => ({ productId: i.productId, size: i.size, color: i.color, quantity: i.quantity })),
+          }),
+        });
+        const out = (await res.json()) as { ok?: boolean; redirect?: string; error?: string };
+        if (!res.ok || !out.redirect) throw new Error(out.error ?? 'Erro inesperado.');
+        if (s('paymentMethod') === 'pix') clearCart();
+        window.location.href = out.redirect;
+      } catch (ex) {
+        err.textContent = ex instanceof Error ? ex.message : 'Erro inesperado.';
+        err.classList.remove('hidden');
+        btn.disabled = false; btn.textContent = 'Confirmar encomenda';
+      }
+    });
+  });
+</script>

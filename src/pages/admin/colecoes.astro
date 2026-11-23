@@ -1,0 +1,138 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseForRequest } from '../../lib/server/supabase';
+import { bool, num, slugify, str } from '../../lib/server/admin/helpers';
+
+const sb = supabaseForRequest(Astro.request, Astro.cookies);
+
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  const actionsAll = fd.getAll('_action').filter((v): v is string => typeof v === 'string');
+  const action = actionsAll[actionsAll.length - 1] ?? '';
+  let errText = '';
+  let msg = 'Guardado.';
+  if (action === 'col_save') {
+    const original = str(fd, 'original');
+    const name = str(fd, 'name');
+    const slug = slugify(str(fd, 'slug') || name);
+    if (!name || !slug) errText = 'Nome obrigatório.';
+    else {
+      const row = {
+        slug, name,
+        tagline: str(fd, 'tagline'),
+        description: str(fd, 'description'),
+        cover_url: str(fd, 'cover_url'),
+        sort_order: Math.floor(num(fd, 'sort_order') ?? 0),
+        active: bool(fd, 'active'),
+      };
+      const { error } = original
+        ? await sb.from('collections').update(row).eq('slug', original)
+        : await sb.from('collections').insert(row);
+      if (error) errText = error.code === '23505' ? 'Já existe uma coleção com esse slug.' : error.message;
+      else msg = original ? 'Coleção atualizada.' : 'Coleção criada.';
+    }
+  } else if (action === 'col_delete') {
+    errText = (await sb.from('collections').delete().eq('slug', str(fd, 'original'))).error?.message ?? '';
+    msg = 'Coleção eliminada.';
+  } else if (action === 'cat_save') {
+    const original = str(fd, 'original');
+    const label = str(fd, 'label');
+    const slug = slugify(str(fd, 'slug') || label);
+    if (!label || !slug) errText = 'Nome obrigatório.';
+    else {
+      const row = { slug, label, sort_order: Math.floor(num(fd, 'sort_order') ?? 0) };
+      const { error } = original
+        ? await sb.from('categories').update(row).eq('slug', original)
+        : await sb.from('categories').insert(row);
+      if (error) errText = error.code === '23505' ? 'Já existe essa categoria.' : error.message;
+      else msg = original ? 'Categoria atualizada.' : 'Categoria criada.';
+    }
+  } else if (action === 'cat_delete') {
+    const { error } = await sb.from('categories').delete().eq('slug', str(fd, 'original'));
+    errText = error ? (error.code === '23503' ? 'Há produtos nesta categoria — mova-os antes de eliminar.' : error.message) : '';
+    msg = 'Categoria eliminada.';
+  }
+  return Astro.redirect(`/admin/colecoes?${errText ? `err=${encodeURIComponent(errText)}` : `msg=${encodeURIComponent(msg)}`}`);
+}
+
+interface ColRow { slug: string; name: string; tagline: string; description: string; cover_url: string; sort_order: number; active: boolean }
+interface CatRow { slug: string; label: string; sort_order: number }
+const [{ data: cols }, { data: cats }, { data: prods }] = await Promise.all([
+  sb.from('collections').select('*').order('sort_order'),
+  sb.from('categories').select('*').order('sort_order'),
+  sb.from('products').select('category,collection'),
+]);
+const collections = (cols ?? []) as ColRow[];
+const categories = (cats ?? []) as CatRow[];
+const pr = (prods ?? []) as { category: string; collection: string | null }[];
+const countCol = (s: string): number => pr.filter((p) => p.collection === s).length;
+const countCat = (s: string): number => pr.filter((p) => p.category === s).length;
+const blankCol: ColRow = { slug: '', name: '', tagline: '', description: '', cover_url: '', sort_order: collections.length, active: true };
+---
+<AdminLayout title="Coleções & categorias" active="colecoes">
+  <section class="space-y-4">
+    <h2 class="text-2xl">Coleções</h2>
+    <div class="grid md:grid-cols-2 2xl:grid-cols-3 gap-4">
+      {[...collections, blankCol].map((c) => (
+        <form method="POST" class={`a-card overflow-hidden ${c.slug ? '' : 'border-dashed !border-2 !border-cocoa/15'}`}>
+          <input type="hidden" name="_action" value="col_save" />
+          <input type="hidden" name="original" value={c.slug} />
+          <div class="relative h-32 bg-cocoa">
+            {c.cover_url && <img src={c.cover_url} alt="" class="absolute inset-0 w-full h-full object-cover opacity-80" loading="lazy" />}
+            <div class="absolute inset-0 bg-gradient-to-t from-ink/80 to-transparent"></div>
+            <p class="absolute bottom-3 left-4 font-display text-2xl text-bone">{c.name || 'Nova coleção'}</p>
+            {c.slug && <span class="absolute top-3 right-3 a-pill bg-white/90 text-ink">{countCol(c.slug)} produtos</span>}
+          </div>
+          <div class="p-5 space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="a-label">Nome</label><input class="a-input" name="name" value={c.name} required /></div>
+              <div><label class="a-label">Slug</label><input class="a-input" name="slug" value={c.slug} placeholder="auto" /></div>
+            </div>
+            <div><label class="a-label">Frase</label><input class="a-input" name="tagline" value={c.tagline} /></div>
+            <div><label class="a-label">Descrição</label><textarea class="a-textarea !min-h-[70px]" name="description">{c.description}</textarea></div>
+            <div><label class="a-label">Imagem de capa (URL)</label><input class="a-input" name="cover_url" value={c.cover_url} /></div>
+            <div class="flex items-center gap-4">
+              <div class="w-24"><label class="a-label">Ordem</label><input class="a-input" type="number" name="sort_order" value={c.sort_order} /></div>
+              <label class="flex items-center gap-2 mt-5 cursor-pointer"><input type="checkbox" name="active" class="sr-only" checked={c.active} /><span class="a-switch"></span><span class="text-[12.5px]">Visível</span></label>
+            </div>
+            <div class="flex gap-2 pt-1">
+              <button class="a-btn a-btn-primary a-btn-sm flex-1">{c.slug ? 'Guardar' : 'Criar coleção'}</button>
+              {c.slug && <button name="_action" value="col_delete" class="a-btn a-btn-danger a-btn-sm" data-confirm="Eliminar esta coleção? Os produtos ficam sem coleção.">Eliminar</button>}
+            </div>
+          </div>
+        </form>
+      ))}
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <h2 class="text-2xl">Categorias</h2>
+    <div class="a-card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="a-table">
+          <thead><tr><th>Nome</th><th>Slug</th><th>Ordem</th><th>Produtos</th><th></th></tr></thead>
+          <tbody>
+            {[...categories, { slug: '', label: '', sort_order: categories.length }].map((c) => (
+              <tr>
+                <td colspan="5" class="!p-0">
+                  <form method="POST" class="grid grid-cols-[1fr_1fr_90px_80px_auto] gap-3 items-center px-4 py-2.5">
+                    <input type="hidden" name="_action" value="cat_save" />
+                    <input type="hidden" name="original" value={c.slug} />
+                    <input class="a-input" name="label" value={c.label} placeholder="Nova categoria…" required />
+                    <input class="a-input" name="slug" value={c.slug} placeholder="auto" />
+                    <input class="a-input" type="number" name="sort_order" value={c.sort_order} />
+                    <span class="text-center text-mocha">{c.slug ? countCat(c.slug) : '—'}</span>
+                    <div class="flex gap-2 justify-end">
+                      <button class="a-btn a-btn-primary a-btn-sm">{c.slug ? 'Guardar' : 'Adicionar'}</button>
+                      {c.slug && <button name="_action" value="cat_delete" class="a-btn a-btn-danger a-btn-sm" data-confirm="Eliminar categoria?">✕</button>}
+                    </div>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</AdminLayout>

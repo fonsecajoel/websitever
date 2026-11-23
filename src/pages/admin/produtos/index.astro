@@ -1,56 +1,110 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
-import { getProductsFromDB, deleteProduct } from '../../../lib/db';
-import { categoryLabels } from '../../../data/products';
+import { supabaseForRequest } from '../../../lib/server/supabase';
+import { mapProduct, totalStock, type ProductRow } from '../../../lib/server/catalog';
+import { formatBRL } from '../../../lib/pricing';
+import { str } from '../../../lib/server/admin/helpers';
+
+const sb = supabaseForRequest(Astro.request, Astro.cookies);
 
 if (Astro.request.method === 'POST') {
-  const form = await Astro.request.formData();
-  const action = form.get('action') as string;
-  const id = form.get('id') as string;
-
-  if (action === 'delete' && id) {
-    await deleteProduct(id);
+  const fd = await Astro.request.formData();
+  const id = str(fd, 'id');
+  const action = str(fd, '_action');
+  if (action === 'toggle' && id) {
+    const { error } = await sb.from('products').update({ active: str(fd, 'active') === 'true' }).eq('id', id);
+    if (error) return Astro.redirect(`/admin/produtos?err=${encodeURIComponent(error.message)}`);
   }
+  return Astro.redirect(`/admin/produtos${Astro.url.search}`);
 }
 
-const products = await getProductsFromDB();
+const q = Astro.url.searchParams.get('q')?.trim() ?? '';
+const cat = Astro.url.searchParams.get('cat') ?? '';
+const state = Astro.url.searchParams.get('estado') ?? '';
+
+let query = sb.from('products').select('*').order('sort_order').order('created_at', { ascending: false });
+if (q) query = query.or(`name.ilike.%${q.replace(/[%,()]/g, '')}%,slug.ilike.%${q.replace(/[%,()]/g, '')}%`);
+if (cat) query = query.eq('category', cat);
+if (state === 'ativos') query = query.eq('active', true);
+if (state === 'inativos') query = query.eq('active', false);
+
+const [{ data, error }, { data: cats }] = await Promise.all([
+  query,
+  sb.from('categories').select('slug,label').order('sort_order'),
+]);
+const products = ((data ?? []) as ProductRow[]).map(mapProduct);
+const categories = (cats ?? []) as { slug: string; label: string }[];
+const catLabel = (s: string): string => categories.find((c) => c.slug === s)?.label ?? s;
 ---
+<AdminLayout title="Produtos" active="produtos" subtitle={`${products.length} produto(s)`}>
+  <a slot="actions" href="/admin/produtos/novo" class="a-btn a-btn-primary">+ Novo produto</a>
+  {error && <div class="a-flash a-flash-err">{error.message}</div>}
 
-<AdminLayout title="Produtos">
-  <div class="admin-header">
-    <h2>Produtos ({products.length})</h2>
-    <a href="/admin/produtos/novo" class="btn btn-primary">+ Novo Produto</a>
+  <form method="GET" class="a-card p-4 flex flex-wrap gap-3 items-end">
+    <div class="flex-1 min-w-[200px]">
+      <label class="a-label" for="q">Pesquisar</label>
+      <input class="a-input" id="q" name="q" value={q} placeholder="Nome ou slug…" />
+    </div>
+    <div class="w-44">
+      <label class="a-label" for="cat">Categoria</label>
+      <select class="a-select" id="cat" name="cat">
+        <option value="">Todas</option>
+        {categories.map((c) => <option value={c.slug} selected={c.slug === cat}>{c.label}</option>)}
+      </select>
+    </div>
+    <div class="w-36">
+      <label class="a-label" for="estado">Estado</label>
+      <select class="a-select" id="estado" name="estado">
+        <option value="">Todos</option>
+        <option value="ativos" selected={state === 'ativos'}>Ativos</option>
+        <option value="inativos" selected={state === 'inativos'}>Inativos</option>
+      </select>
+    </div>
+    <button class="a-btn a-btn-ghost">Filtrar</button>
+  </form>
+
+  <div class="a-card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="a-table">
+        <thead><tr><th></th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Stock</th><th>Visível</th><th></th></tr></thead>
+        <tbody>
+          {products.length === 0 && <tr><td colspan="7" class="text-center py-12 text-taupe">Nenhum produto encontrado.</td></tr>}
+          {products.map((p) => {
+            const stock = totalStock(p);
+            return (
+              <tr>
+                <td class="w-16"><img src={p.images[0]?.src ?? '/logo-navbar.png'} alt="" class="w-12 h-14 rounded-xl object-cover bg-cream" loading="lazy" /></td>
+                <td>
+                  <a href={`/admin/produtos/${p.id}`} class="font-semibold hover:text-brand-red">{p.name}</a>
+                  <p class="text-[11.5px] text-taupe">/{p.slug}</p>
+                  <div class="flex gap-1 mt-1">{p.badges.map((b) => <span class="a-pill tone-gray !text-[10px]">{b}</span>)}</div>
+                </td>
+                <td class="text-mocha">{catLabel(p.category)}</td>
+                <td class="whitespace-nowrap">
+                  <p class="font-semibold">{formatBRL(p.price)}</p>
+                  {p.oldPrice && <p class="text-[11.5px] text-taupe line-through">{formatBRL(p.oldPrice)}</p>}
+                </td>
+                <td><span class={`a-pill ${stock === 0 ? 'tone-red' : stock <= 5 ? 'tone-amber' : 'tone-green'}`}>{stock} un.</span></td>
+                <td>
+                  <form method="POST">
+                    <input type="hidden" name="_action" value="toggle" />
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="active" value={p.active ? 'false' : 'true'} />
+                    <button class="flex items-center" aria-label={p.active ? 'Ocultar' : 'Mostrar'} title={p.active ? 'Ocultar da loja' : 'Mostrar na loja'}>
+                      <input type="checkbox" checked={p.active} class="sr-only" tabindex="-1" />
+                      <span class="a-switch"></span>
+                    </button>
+                  </form>
+                </td>
+                <td class="text-right whitespace-nowrap">
+                  <a href={`/produto/${p.slug}`} target="_blank" rel="noopener" class="a-btn a-btn-ghost a-btn-sm">Ver</a>
+                  <a href={`/admin/produtos/${p.id}`} class="a-btn a-btn-primary a-btn-sm">Editar</a>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Foto</th>
-        <th>Nome</th>
-        <th>Preço</th>
-        <th>Categoria</th>
-        <th>Coleção</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {products.map(p => (
-        <tr>
-          <td><img src={p.images[0]?.src} alt="" class="product-thumb" /></td>
-          <td><strong>{p.name}</strong><br /><span style="font-size: 0.8rem; color: #666;">{p.slug}</span></td>
-          <td>R$ {p.price}{p.oldPrice && <span style="text-decoration: line-through; color: #999; margin-left: 0.5rem; font-size: 0.8rem;">R$ {p.oldPrice}</span>}</td>
-          <td><span class="badge badge-green">{categoryLabels[p.category]}</span></td>
-          <td>{p.collection}</td>
-          <td style="display: flex; gap: 0.5rem;">
-            <a href={`/admin/produtos/${p.id}`} class="btn btn-secondary" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Editar</a>
-            <form method="POST" style="display: inline;" onsubmit="return confirm('Tens a certeza?')">
-              <input type="hidden" name="action" value="delete" />
-              <input type="hidden" name="id" value={p.id} />
-              <button type="submit" class="btn btn-danger" style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">Apagar</button>
-            </form>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
 </AdminLayout>

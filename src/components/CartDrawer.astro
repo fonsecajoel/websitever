@@ -1,162 +1,126 @@
 ---
-import { formatBRL } from '../data/products';
+interface Props { freeShippingThreshold: number }
+const { freeShippingThreshold } = Astro.props;
 ---
 
-<div
-  id="cart-overlay"
-  class="fixed inset-0 bg-cocoa/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-500 z-50"
-></div>
-
-<aside
-  id="cart-drawer"
-  class="fixed top-0 right-0 h-full w-full sm:w-[440px] bg-bone shadow-2xl translate-x-full transition-transform duration-500 z-50 flex flex-col"
-  style="transition-timing-function: var(--ease-silk);"
-  aria-label="Sacola de compras"
->
-  <div class="flex items-center justify-between px-7 h-20 border-b border-taupe/25">
-    <div>
-      <h2 class="font-display text-2xl text-ink leading-none">Sua sacola</h2>
-      <p id="cart-summary" class="eyebrow mt-1.5 text-mocha">0 peças</p>
+<div id="cart-drawer" class="fixed inset-0 z-[65] pointer-events-none" aria-hidden="true" data-threshold={freeShippingThreshold} transition:persist="cart-drawer">
+  <div data-cart-backdrop class="absolute inset-0 bg-night/50 backdrop-blur-[2px] opacity-0 transition-opacity duration-500"></div>
+  <aside class="cart-panel absolute right-0 inset-y-0 w-full sm:w-[440px] bg-bone shadow-lift flex flex-col translate-x-full transition-transform duration-700" role="dialog" aria-label="Sacola de compras" style="transition-timing-function: var(--ease-silk)">
+    <div class="flex items-center justify-between px-6 h-20 border-b border-taupe/25">
+      <p class="font-display text-2xl text-ink">A sua sacola <span data-cart-qty class="text-brand text-lg align-super"></span></p>
+      <button data-cart-close class="w-10 h-10 grid place-items-center rounded-full hover:bg-blush transition" aria-label="Fechar sacola">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
     </div>
-    <button id="cart-close" aria-label="Fechar sacola" class="text-cocoa hover:text-ink">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <line x1="6" y1="6" x2="18" y2="18" />
-        <line x1="18" y1="6" x2="6" y2="18" />
-      </svg>
-    </button>
-  </div>
 
-  <div id="cart-empty" class="flex-1 flex flex-col items-center justify-center px-8 text-center hidden">
-    <div class="w-16 h-16 rounded-full border border-taupe/40 flex items-center justify-center mb-6">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="text-mocha">
-        <path d="M5 7h14l-1.5 12.5a2 2 0 01-2 1.5h-7a2 2 0 01-2-1.5L5 7z" />
-        <path d="M9 7V5a3 3 0 016 0v2" />
-      </svg>
+    <div class="px-6 py-4 bg-cream/70 border-b border-taupe/20">
+      <p data-ship-msg class="text-xs text-mocha mb-2"></p>
+      <div class="h-1.5 rounded-full bg-sand overflow-hidden">
+        <div data-ship-bar class="h-full rounded-full bg-gradient-to-r from-brand to-gold transition-[width] duration-700" style="width:0%"></div>
+      </div>
     </div>
-    <p class="font-display text-2xl text-ink mb-3">A sua sacola aguarda</p>
-    <p class="text-sm text-mocha mb-8 max-w-[28ch]">
-      Explore as nossas coleções e encontre a peça que vai contar a sua próxima história.
-    </p>
-    <a href="/colecoes" class="btn-primary">Descobrir coleções</a>
-  </div>
 
-  <div id="cart-items" class="flex-1 overflow-y-auto px-7 py-6 space-y-6"></div>
+    <ul data-cart-list class="flex-1 overflow-y-auto px-6 divide-y divide-taupe/20"></ul>
 
-  <div id="cart-footer" class="border-t border-taupe/25 px-7 py-6 space-y-5 hidden">
-    <div class="flex items-center justify-between text-sm">
-      <span class="text-mocha">Subtotal</span>
-      <span id="cart-subtotal" class="font-display text-xl text-ink">R$ 0,00</span>
+    <div data-cart-empty class="flex-1 hidden flex-col items-center justify-center text-center px-10">
+      <p class="script text-6xl text-gold mb-2">Vazia</p>
+      <p class="text-mocha mb-8">Ainda não escolheu o seu próximo par.</p>
+      <a href="/colecao/novidades" class="btn-primary">Ver novidades</a>
     </div>
-    <div class="flex items-center justify-between text-xs text-mocha">
-      <span>Frete</span>
-      <span>Calculado no checkout</span>
+
+    <div data-cart-footer class="border-t border-taupe/25 px-6 py-6 space-y-4 bg-bone">
+      <div class="flex justify-between items-baseline">
+        <span class="eyebrow">Subtotal</span>
+        <span data-cart-subtotal class="font-display text-3xl text-ink"></span>
+      </div>
+      <p class="text-xs text-mocha">Pix com desconto extra · Cartão via Stripe em até 6x. Frete e cupões no checkout.</p>
+      <a href="/checkout" class="btn-primary w-full">Finalizar compra</a>
     </div>
-    <a href="/checkout" class="btn-primary w-full">Finalizar compra</a>
-    <button id="cart-continue" class="w-full text-xs uppercase tracking-[0.2em] text-mocha hover:text-cocoa">
-      Continuar comprando
-    </button>
-  </div>
-</aside>
+  </aside>
+</div>
+
+<style>
+  #cart-drawer.is-open { pointer-events: auto; }
+  #cart-drawer.is-open [data-cart-backdrop] { opacity: 1; }
+  #cart-drawer.is-open .cart-panel { translate: none; }
+</style>
 
 <script>
-  import { cartItems, cartOpen, cartSubtotal, cartCount, removeFromCart, updateQuantity, closeCart } from '../stores/cart';
+  import { cartItems, cartOpen, cartSubtotal, removeFromCart, updateQuantity, type CartItem } from '../stores/cart';
+  import { formatBRL } from '../scripts/ui';
 
-  const formatBRL = (v: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+  const root = document.getElementById('cart-drawer');
+  if (root) {
+    const threshold = Number(root.dataset.threshold ?? 499);
+    const list = root.querySelector<HTMLUListElement>('[data-cart-list]')!;
+    const empty = root.querySelector<HTMLElement>('[data-cart-empty]')!;
+    const footer = root.querySelector<HTMLElement>('[data-cart-footer]')!;
 
-  const overlay = document.getElementById('cart-overlay');
-  const drawer = document.getElementById('cart-drawer');
-  const close = document.getElementById('cart-close');
-  const emptyEl = document.getElementById('cart-empty');
-  const itemsEl = document.getElementById('cart-items');
-  const footerEl = document.getElementById('cart-footer');
-  const summaryEl = document.getElementById('cart-summary');
-  const subtotalEl = document.getElementById('cart-subtotal');
-  const continueBtn = document.getElementById('cart-continue');
+    const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
 
-  function setOpen(open: boolean) {
-    if (!drawer || !overlay) return;
-    if (open) {
-      drawer.classList.remove('translate-x-full');
-      overlay.classList.remove('opacity-0', 'pointer-events-none');
-      document.body.style.overflow = 'hidden';
-    } else {
-      drawer.classList.add('translate-x-full');
-      overlay.classList.add('opacity-0', 'pointer-events-none');
-      document.body.style.overflow = '';
-    }
-  }
-
-  cartOpen.subscribe(setOpen);
-  close?.addEventListener('click', () => closeCart());
-  overlay?.addEventListener('click', () => closeCart());
-  continueBtn?.addEventListener('click', () => closeCart());
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeCart();
-  });
-
-  function render() {
-    const items = cartItems.get();
-    if (!itemsEl || !emptyEl || !footerEl || !summaryEl || !subtotalEl) return;
-
-    summaryEl.textContent = `${cartCount.get()} ${cartCount.get() === 1 ? 'peça' : 'peças'}`;
-    subtotalEl.textContent = formatBRL(cartSubtotal.get());
-
-    if (items.length === 0) {
-      emptyEl.classList.remove('hidden');
-      itemsEl.classList.add('hidden');
-      footerEl.classList.add('hidden');
-      return;
-    }
-
-    emptyEl.classList.add('hidden');
-    itemsEl.classList.remove('hidden');
-    footerEl.classList.remove('hidden');
-
-    itemsEl.innerHTML = items
-      .map(
-        (item) => `
-        <article class="flex gap-4 group" data-id="${item.id}">
-          <a href="/produto/${item.slug}" class="block w-24 h-32 bg-cream overflow-hidden shrink-0">
-            <img src="${item.image}" alt="${item.name}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-          </a>
-          <div class="flex-1 flex flex-col">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <a href="/produto/${item.slug}" class="font-display text-lg text-ink leading-tight">${item.name}</a>
-                <p class="text-xs text-mocha mt-1">${item.color} · Tam ${item.size}</p>
-              </div>
-              <button data-remove="${item.id}" aria-label="Remover" class="text-mocha hover:text-ink">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-              </button>
-            </div>
-            <div class="mt-auto flex items-center justify-between">
-              <div class="inline-flex items-center border border-taupe/40">
-                <button data-qty="${item.id}" data-delta="-1" class="w-8 h-8 text-mocha hover:text-ink">−</button>
-                <span class="w-8 text-center text-sm">${item.quantity}</span>
-                <button data-qty="${item.id}" data-delta="1" class="w-8 h-8 text-mocha hover:text-ink">+</button>
-              </div>
-              <span class="font-display text-lg text-ink">${formatBRL(item.price * item.quantity)}</span>
-            </div>
+    const line = (i: CartItem): string => `
+      <li class="py-5 flex gap-4" data-id="${esc(i.id)}">
+        <a href="/produto/${esc(i.slug)}" class="w-24 h-28 shrink-0 rounded-2xl overflow-hidden bg-cream">
+          <img src="${esc(i.image)}" alt="" class="w-full h-full object-cover" loading="lazy" />
+        </a>
+        <div class="flex-1 min-w-0 flex flex-col">
+          <div class="flex justify-between gap-2">
+            <a href="/produto/${esc(i.slug)}" class="font-display text-xl text-ink leading-tight">${esc(i.name)}</a>
+            <button data-remove class="text-taupe hover:text-brand transition" aria-label="Remover">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
           </div>
-        </article>
-      `
-      )
-      .join('');
+          <p class="text-xs text-mocha mt-1">${esc(i.color)} · Tam. ${esc(i.size)}</p>
+          <div class="mt-auto flex items-center justify-between">
+            <div class="flex items-center rounded-full border border-taupe/40">
+              <button data-dec class="w-8 h-8" aria-label="Diminuir">−</button>
+              <span class="w-6 text-center text-sm">${i.quantity}</span>
+              <button data-inc class="w-8 h-8" aria-label="Aumentar">+</button>
+            </div>
+            <span class="text-sm font-medium text-ink">${formatBRL(i.price * i.quantity)}</span>
+          </div>
+        </div>
+      </li>`;
 
-    itemsEl.querySelectorAll<HTMLButtonElement>('[data-remove]').forEach((btn) => {
-      btn.addEventListener('click', () => removeFromCart(btn.dataset.remove!));
+    const render = (items: readonly CartItem[]): void => {
+      list.innerHTML = items.map(line).join('');
+      const isEmpty = items.length === 0;
+      empty.classList.toggle('hidden', !isEmpty);
+      empty.classList.toggle('flex', isEmpty);
+      list.classList.toggle('hidden', isEmpty);
+      footer.classList.toggle('hidden', isEmpty);
+      const qty = items.reduce((s, i) => s + i.quantity, 0);
+      root.querySelector('[data-cart-qty]')!.textContent = qty ? `(${qty})` : '';
+      const sub = cartSubtotal.get();
+      root.querySelector('[data-cart-subtotal]')!.textContent = formatBRL(sub);
+      const missing = Math.max(0, threshold - sub);
+      root.querySelector('[data-ship-msg]')!.innerHTML = missing === 0
+        ? '<strong class="text-brand">Parabéns!</strong> Ganhou frete grátis ✦'
+        : `Faltam <strong class="text-ink">${formatBRL(missing)}</strong> para frete grátis`;
+      root.querySelector<HTMLElement>('[data-ship-bar]')!.style.width = `${Math.min(100, (sub / threshold) * 100)}%`;
+    };
+
+    list.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      const li = t.closest<HTMLElement>('li[data-id]');
+      if (!li) return;
+      const id = li.dataset.id!;
+      const item = cartItems.get().find((x) => x.id === id);
+      if (!item) return;
+      if (t.closest('[data-remove]')) removeFromCart(id);
+      else if (t.closest('[data-inc]')) updateQuantity(id, item.quantity + 1);
+      else if (t.closest('[data-dec]')) updateQuantity(id, item.quantity - 1);
     });
-    itemsEl.querySelectorAll<HTMLButtonElement>('[data-qty]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.qty!;
-        const delta = parseInt(btn.dataset.delta!, 10);
-        const item = cartItems.get().find((i) => i.id === id);
-        if (item) updateQuantity(id, item.quantity + delta);
-      });
+
+    cartItems.subscribe(render);
+    cartOpen.subscribe((open) => {
+      root.classList.toggle('is-open', open);
+      root.setAttribute('aria-hidden', String(!open));
+      document.documentElement.style.overflow = open ? 'hidden' : '';
     });
+    root.querySelector('[data-cart-backdrop]')?.addEventListener('click', () => cartOpen.set(false));
+    root.querySelector('[data-cart-close]')?.addEventListener('click', () => cartOpen.set(false));
+    root.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('a[href]')) cartOpen.set(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cartOpen.set(false); });
   }
-
-  render();
-  cartItems.subscribe(render);
 </script>

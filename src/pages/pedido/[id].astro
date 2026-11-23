@@ -1,0 +1,62 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getOrderByToken } from '../../lib/server/order-view';
+import { formatBRL } from '../../lib/pricing';
+import { ORDER_STATUS_LABEL, type OrderStatus } from '../../lib/types';
+import { isSupabaseConfigured } from '../../lib/env';
+
+const order = isSupabaseConfigured() ? await getOrderByToken(Astro.params.id ?? null, Astro.url.searchParams.get('t')) : null;
+if (!order) return Astro.rewrite('/404');
+const flow: OrderStatus[] = ['pending', 'paid', 'preparing', 'shipped', 'delivered'];
+const current = flow.indexOf(order.status);
+const events = [...order.order_events].sort((a, b) => b.created_at.localeCompare(a.created_at));
+---
+
+<BaseLayout title={`Encomenda #${order.number}`} noIndex>
+  <section class="container-site max-w-4xl py-14">
+    <p class="eyebrow mb-3">Acompanhar</p>
+    <h1 class="display-lg mb-2">Encomenda #{order.number}</h1>
+    <p class="text-mocha mb-10">{new Date(order.created_at).toLocaleString('pt-BR')} · {order.payment_method === 'pix' ? 'Pix' : 'Cartão (Stripe)'}</p>
+
+    {order.status === 'cancelled' || order.status === 'refunded' ? (
+      <p class="rounded-2xl bg-blush px-5 py-4 text-cocoa mb-10">Estado: {ORDER_STATUS_LABEL[order.status]}</p>
+    ) : (
+      <ol class="grid grid-cols-5 gap-2 mb-12">
+        {flow.map((s, i) => (
+          <li>
+            <div class:list={['h-1.5 rounded-full', i <= current ? 'bg-brand' : 'bg-sand']}></div>
+            <p class:list={['mt-2 text-[10px] uppercase tracking-[0.15em]', i <= current ? 'text-ink' : 'text-taupe']}>{ORDER_STATUS_LABEL[s]}</p>
+          </li>
+        ))}
+      </ol>
+    )}
+    {order.tracking_code && <p class="mb-8 text-sm">Código de rastreio: <strong class="font-mono">{order.tracking_code}</strong></p>}
+    {order.payment_method === 'pix' && order.payment_status !== 'paid' && order.status === 'pending' && (
+      <a href={`/checkout/pix?order=${order.id}&t=${order.access_token}`} class="btn-primary mb-10">Ver QR Code Pix</a>
+    )}
+
+    <div class="grid md:grid-cols-[1.4fr_1fr] gap-8">
+      <ul class="divide-y divide-taupe/20 bg-white rounded-[28px] px-6 shadow-soft">
+        {order.order_items.map((i) => (
+          <li class="py-4 flex gap-4 items-center">
+            <img src={i.image} alt="" class="w-16 h-20 rounded-xl object-cover bg-cream" />
+            <span class="flex-1"><span class="block font-display text-lg text-ink">{i.name}</span><span class="text-xs text-mocha">{i.color} · {i.size} · ×{i.quantity}</span></span>
+            <span class="text-sm">{formatBRL(Number(i.unit_price) * i.quantity)}</span>
+          </li>
+        ))}
+      </ul>
+      <div class="space-y-6">
+        <dl class="bg-white rounded-[28px] p-6 shadow-soft text-sm space-y-2">
+          <div class="flex justify-between"><dt class="text-mocha">Subtotal</dt><dd>{formatBRL(Number(order.subtotal))}</dd></div>
+          {Number(order.discount) > 0 && <div class="flex justify-between text-brand"><dt>Descontos</dt><dd>−{formatBRL(Number(order.discount))}</dd></div>}
+          <div class="flex justify-between"><dt class="text-mocha">Frete</dt><dd>{Number(order.shipping) === 0 ? 'Grátis' : formatBRL(Number(order.shipping))}</dd></div>
+          <div class="flex justify-between pt-3 border-t border-taupe/20 font-display text-2xl text-ink"><dt>Total</dt><dd>{formatBRL(Number(order.total))}</dd></div>
+        </dl>
+        <div class="bg-white rounded-[28px] p-6 shadow-soft">
+          <p class="eyebrow mb-4">Histórico</p>
+          <ul class="space-y-3 text-sm">{events.map((e) => <li><span class="text-ink">{e.note || e.status}</span><span class="block text-xs text-taupe">{new Date(e.created_at).toLocaleString('pt-BR')}</span></li>)}</ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,65 +1,119 @@
 ---
-interface Props {
-  title: string;
-}
+import '../styles/admin.css';
 
-const { title } = Astro.props;
+interface Props { title: string; active?: string; subtitle?: string }
+const { title, active = '', subtitle } = Astro.props;
+const email = Astro.locals.user?.email ?? '';
+const msg = Astro.url.searchParams.get('msg');
+const err = Astro.url.searchParams.get('err');
+
+const icon = (d: string): string =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+
+const nav: { key: string; label: string; href: string; icon: string }[] = [
+  { key: 'dashboard', label: 'Painel', href: '/admin', icon: icon('<path d="M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z"/>') },
+  { key: 'encomendas', label: 'Encomendas', href: '/admin/encomendas', icon: icon('<path d="M6 2l-2 4v14a2 2 0 002 2h12a2 2 0 002-2V6l-2-4z"/><path d="M4 6h16M16 10a4 4 0 01-8 0"/>') },
+  { key: 'produtos', label: 'Produtos', href: '/admin/produtos', icon: icon('<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/>') },
+  { key: 'colecoes', label: 'Coleções & categorias', href: '/admin/colecoes', icon: icon('<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/>') },
+  { key: 'clientes', label: 'Clientes', href: '/admin/clientes', icon: icon('<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>') },
+  { key: 'cupoes', label: 'Cupões', href: '/admin/cupoes', icon: icon('<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1.5"/>') },
+  { key: 'mensagens', label: 'Mensagens', href: '/admin/mensagens', icon: icon('<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>') },
+  { key: 'newsletter', label: 'Newsletter', href: '/admin/newsletter', icon: icon('<path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/>') },
+  { key: 'definicoes', label: 'Definições', href: '/admin/definicoes', icon: icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>') },
+];
 ---
-
 <!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title} | Admin</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
-      .admin-layout { display: flex; min-height: 100vh; }
-      .admin-sidebar { width: 250px; background: #1a1a1a; color: #fff; padding: 2rem 1rem; position: fixed; height: 100vh; overflow-y: auto; }
-      .admin-sidebar h1 { font-size: 1.1rem; margin-bottom: 2rem; padding: 0 0.5rem; letter-spacing: 0.05em; }
-      .admin-sidebar a { display: block; padding: 0.7rem 0.75rem; color: #ccc; text-decoration: none; border-radius: 6px; margin-bottom: 0.25rem; font-size: 0.9rem; }
-      .admin-sidebar a:hover, .admin-sidebar a.active { background: #333; color: #fff; }
-      .admin-main { margin-left: 250px; flex: 1; padding: 2rem; }
-      .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-      .admin-header h2 { font-size: 1.5rem; }
-      .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; text-decoration: none; font-weight: 500; }
-      .btn-primary { background: #1a1a1a; color: #fff; }
-      .btn-primary:hover { background: #333; }
-      .btn-danger { background: #dc2626; color: #fff; }
-      .btn-danger:hover { background: #b91c1c; }
-      .btn-secondary { background: #e5e5e5; color: #1a1a1a; }
-      .btn-secondary:hover { background: #d4d4d4; }
-      table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-      th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #f0f0f0; }
-      th { background: #fafafa; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; color: #666; }
-      td { font-size: 0.9rem; }
-      .product-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
-      .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
-      .badge-green { background: #dcfce7; color: #166534; }
-      .badge-yellow { background: #fef9c3; color: #854d0e; }
-      .form-group { margin-bottom: 1.25rem; }
-      .form-group label { display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem; }
-      .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; }
-      .form-group textarea { min-height: 100px; resize: vertical; }
-      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-      .card { background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    </style>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <title>{title} · Gestão Santo Salto</title>
   </head>
-  <body>
-    <div class="admin-layout">
-      <aside class="admin-sidebar">
-        <h1>🏪 SANTO SALTO</h1>
-        <a href="/admin">Dashboard</a>
-        <a href="/admin/produtos">Produtos</a>
-        <a href="/admin/produtos/novo">+ Novo Produto</a>
-        <hr style="border-color: #333; margin: 1rem 0;" />
-        <a href="/" target="_blank">Ver Site →</a>
-        <a href="/admin/logout">Sair</a>
-      </aside>
-      <main class="admin-main">
+  <body class="admin min-h-screen">
+    <div id="a-overlay" class="fixed inset-0 z-30 bg-ink/40 backdrop-blur-sm hidden lg:hidden"></div>
+
+    <aside id="a-sidebar" class="fixed inset-y-0 left-0 z-40 w-[264px] -translate-x-full lg:translate-x-0 transition-transform duration-300 flex flex-col"
+      style="background: radial-gradient(120% 60% at 0% 0%, #8B1A14 0%, #3D0604 55%, #250302 100%);">
+      <div class="px-6 pt-7 pb-6 border-b border-white/10">
+        <a href="/admin" class="block">
+          <img src="/logo-navbar.png" alt="Santo Salto" class="h-12 object-contain brightness-0 invert opacity-95" />
+        </a>
+        <p class="a-eyebrow mt-3" style="color:#E2BC44">Gestão · Atelier digital</p>
+      </div>
+      <nav class="flex-1 overflow-y-auto px-3 py-5 space-y-1">
+        {nav.map((n) => (
+          <a href={n.href} class="a-nav-link" aria-current={active === n.key ? 'page' : undefined}>
+            <Fragment set:html={n.icon} />
+            <span>{n.label}</span>
+          </a>
+        ))}
+      </nav>
+      <div class="p-4 border-t border-white/10 space-y-2">
+        <a href="/" target="_blank" rel="noopener" class="a-nav-link">
+          <Fragment set:html={icon('<path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>')} />
+          <span>Ver loja</span>
+        </a>
+        <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/5">
+          <div class="min-w-0">
+            <p class="text-[11px] text-white/50">Sessão</p>
+            <p class="text-[12.5px] text-white/90 truncate">{email}</p>
+          </div>
+          <a href="/admin/logout" class="text-[11px] font-semibold text-gold-soft hover:text-white shrink-0">Sair</a>
+        </div>
+      </div>
+    </aside>
+
+    <div class="lg:pl-[264px] min-h-screen flex flex-col">
+      <header class="sticky top-0 z-20 backdrop-blur-xl bg-[#FBF6F5]/85 border-b border-cocoa/5">
+        <div class="flex items-center gap-4 px-5 lg:px-10 h-16">
+          <button id="a-menu" class="lg:hidden p-2 -ml-2 rounded-lg hover:bg-blush text-cocoa" aria-label="Abrir menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <div class="min-w-0 flex-1">
+            <h1 class="text-2xl lg:text-[28px] leading-none truncate">{title}</h1>
+            {subtitle && <p class="text-[12px] text-taupe mt-1 truncate">{subtitle}</p>}
+          </div>
+          <slot name="actions" />
+        </div>
+      </header>
+
+      <main class="flex-1 px-5 lg:px-10 py-7 space-y-6">
+        {msg && <div class="a-flash a-flash-ok" role="status">{msg}</div>}
+        {err && <div class="a-flash a-flash-err" role="alert">{err}</div>}
         <slot />
       </main>
     </div>
+
+    <script>
+      const sb = document.getElementById('a-sidebar');
+      const ov = document.getElementById('a-overlay');
+      const open = (v: boolean): void => {
+        sb?.classList.toggle('-translate-x-full', !v);
+        ov?.classList.toggle('hidden', !v);
+      };
+      document.getElementById('a-menu')?.addEventListener('click', () => open(true));
+      ov?.addEventListener('click', () => open(false));
+      document.querySelectorAll<HTMLFormElement>('form[data-confirm]').forEach((f) => {
+        f.addEventListener('submit', (e) => {
+          if (!confirm(f.dataset.confirm ?? 'Tem a certeza?')) e.preventDefault();
+        });
+      });
+      document.querySelectorAll<HTMLButtonElement>('button[data-confirm]').forEach((b) => {
+        b.addEventListener('click', (e) => {
+          if (!confirm(b.dataset.confirm ?? 'Tem a certeza?')) e.preventDefault();
+        });
+      });
+      // limpar ?msg / ?err do URL após mostrar
+      const u = new URL(location.href);
+      if (u.searchParams.has('msg') || u.searchParams.has('err')) {
+        u.searchParams.delete('msg'); u.searchParams.delete('err');
+        history.replaceState(null, '', u.toString());
+      }
+    </script>
   </body>
 </html>

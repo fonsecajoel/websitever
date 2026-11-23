@@ -1,0 +1,174 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { supabaseForRequest } from '../../../lib/server/supabase';
+import { formatBRL, SHIPPING_OPTIONS } from '../../../lib/pricing';
+import { ORDER_STATUS_LABEL, type OrderStatus, type ShippingMethod } from '../../../lib/types';
+import { PAYMENT_STATUS_LABEL, STATUS_TONE, fmtDate, str, type OrderRow } from '../../../lib/server/admin/helpers';
+
+const { id = '' } = Astro.params;
+const sb = supabaseForRequest(Astro.request, Astro.cookies);
+const statuses = Object.keys(ORDER_STATUS_LABEL) as OrderStatus[];
+
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  const action = str(fd, '_action');
+  let msg = 'Guardado.';
+  let errText = '';
+  if (action === 'status') {
+    const next = str(fd, 'status') as OrderStatus;
+    if (!statuses.includes(next)) errText = 'Estado inválido.';
+    else {
+      const patch: Record<string, string> = { status: next };
+      if (next === 'paid') patch.payment_status = 'paid';
+      if (next === 'refunded') patch.payment_status = 'refunded';
+      const { error } = await sb.from('orders').update(patch).eq('id', id);
+      if (error) errText = error.message;
+      else {
+        await sb.from('order_events').insert({ order_id: id, status: next, note: str(fd, 'note') });
+        msg = `Estado alterado para “${ORDER_STATUS_LABEL[next]}”.`;
+      }
+    }
+  } else if (action === 'mark_paid') {
+    const { error } = await sb.from('orders').update({ payment_status: 'paid', status: 'paid' }).eq('id', id);
+    if (error) errText = error.message;
+    else { await sb.from('order_events').insert({ order_id: id, status: 'paid', note: 'Pagamento Pix confirmado manualmente' }); msg = 'Pagamento confirmado.'; }
+  } else if (action === 'details') {
+    const { error } = await sb.from('orders').update({ tracking_code: str(fd, 'tracking_code') || null, admin_notes: str(fd, 'admin_notes') }).eq('id', id);
+    if (error) errText = error.message;
+  }
+  const qs = errText ? `err=${encodeURIComponent(errText)}` : `msg=${encodeURIComponent(msg)}`;
+  return Astro.redirect(`/admin/encomendas/${id}?${qs}`);
+}
+
+const { data, error } = await sb.from('orders').select('*, order_items(*), order_events(*)').eq('id', id).maybeSingle();
+if (error || !data) return Astro.redirect(`/admin/encomendas?err=${encodeURIComponent(error?.message ?? 'Encomenda não encontrada.')}`);
+const o = data as OrderRow;
+const items = o.order_items ?? [];
+const events = [...(o.order_events ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
+const c = o.customer_snapshot ?? {};
+const a = o.shipping_address ?? {};
+const fullName = [c.firstName, c.lastName].filter(Boolean).join(' ');
+const phoneDigits = (c.phone ?? '').replace(/\D/g, '');
+const waPhone = phoneDigits.length <= 11 ? `55${phoneDigits}` : phoneDigits;
+const waText = encodeURIComponent(`Olá ${c.firstName ?? ''}! Aqui é a Santo Salto 💛 Sobre a sua encomenda #${o.number}: `);
+const ship = SHIPPING_OPTIONS[o.shipping_method as ShippingMethod];
+---
+<AdminLayout title={`Encomenda #${o.number}`} active="encomendas" subtitle={fmtDate(o.created_at)}>
+  <div slot="actions" class="flex gap-2 items-center">
+    <span class={`a-pill ${STATUS_TONE[o.status]}`}>{ORDER_STATUS_LABEL[o.status]}</span>
+    <a href="/admin/encomendas" class="a-btn a-btn-ghost hidden sm:inline-flex">← Encomendas</a>
+  </div>
+
+  <div class="grid xl:grid-cols-3 gap-6">
+    <div class="xl:col-span-2 space-y-6">
+      <section class="a-card overflow-hidden">
+        <div class="p-6 pb-2"><p class="a-eyebrow">Artigos</p></div>
+        <table class="a-table">
+          <tbody>
+            {items.map((it) => (
+              <tr>
+                <td class="w-16"><img src={it.image || '/logo-navbar.png'} alt="" class="w-12 h-14 rounded-xl object-cover bg-cream" /></td>
+                <td>
+                  <a href={`/produto/${it.slug}`} target="_blank" rel="noopener" class="font-semibold hover:text-brand-red">{it.name}</a>
+                  <p class="text-[12px] text-taupe">Tam. {it.size} · {it.color}</p>
+                </td>
+                <td class="text-mocha whitespace-nowrap">{it.quantity} × {formatBRL(Number(it.unit_price))}</td>
+                <td class="text-right font-semibold whitespace-nowrap">{formatBRL(Number(it.unit_price) * it.quantity)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div class="border-t border-cocoa/10 p-6 space-y-1.5 text-[13.5px] max-w-sm ml-auto">
+          <div class="flex justify-between"><span class="text-mocha">Subtotal</span><span>{formatBRL(Number(o.subtotal))}</span></div>
+          {Number(o.discount) > 0 && <div class="flex justify-between"><span class="text-mocha">Descontos {o.coupon_code && <span class="a-pill tone-violet !text-[10px] ml-1">{o.coupon_code}</span>}</span><span>− {formatBRL(Number(o.discount))}</span></div>}
+          <div class="flex justify-between"><span class="text-mocha">Envio · {ship?.label ?? o.shipping_method}</span><span>{Number(o.shipping) === 0 ? 'Grátis' : formatBRL(Number(o.shipping))}</span></div>
+          <div class="flex justify-between pt-2 border-t border-cocoa/10 text-lg font-display"><span>Total</span><span class="font-semibold">{formatBRL(Number(o.total))}</span></div>
+        </div>
+      </section>
+
+      <section class="a-card p-6">
+        <p class="a-eyebrow mb-4">Histórico</p>
+        <ol class="relative border-l border-cocoa/10 ml-2 space-y-5">
+          {events.map((e) => (
+            <li class="ml-5">
+              <span class="absolute -left-[5px] mt-1.5 w-2.5 h-2.5 rounded-full bg-brand-red ring-4 ring-blush"></span>
+              <p class="font-medium">{ORDER_STATUS_LABEL[e.status as OrderStatus] ?? e.status}</p>
+              {e.note && <p class="text-[12.5px] text-mocha">{e.note}</p>}
+              <p class="text-[11.5px] text-taupe">{fmtDate(e.created_at)}</p>
+            </li>
+          ))}
+          <li class="ml-5">
+            <span class="absolute -left-[5px] mt-1.5 w-2.5 h-2.5 rounded-full bg-gold ring-4 ring-blush"></span>
+            <p class="font-medium">Encomenda criada</p>
+            <p class="text-[11.5px] text-taupe">{fmtDate(o.created_at)}</p>
+          </li>
+        </ol>
+      </section>
+    </div>
+
+    <aside class="space-y-6">
+      <section class="a-card p-6 space-y-4">
+        <p class="a-eyebrow">Pagamento</p>
+        <div class="flex items-center justify-between">
+          <span class="font-semibold">{o.payment_method === 'pix' ? 'Pix' : 'Cartão (Stripe)'}</span>
+          <span class={`a-pill ${o.payment_status === 'paid' ? 'tone-green' : o.payment_status === 'failed' ? 'tone-red' : 'tone-amber'}`}>{PAYMENT_STATUS_LABEL[o.payment_status]}</span>
+        </div>
+        {o.stripe_session_id && <p class="text-[11.5px] text-taupe break-all">Sessão Stripe: {o.stripe_session_id}</p>}
+        {o.payment_method === 'pix' && o.payment_status !== 'paid' && (
+          <form method="POST" data-confirm="Confirmar que o Pix foi recebido?">
+            <input type="hidden" name="_action" value="mark_paid" />
+            <button class="a-btn a-btn-gold w-full">✓ Confirmar Pix recebido</button>
+          </form>
+        )}
+      </section>
+
+      <section class="a-card p-6 space-y-3">
+        <p class="a-eyebrow">Alterar estado</p>
+        <form method="POST" class="space-y-3">
+          <input type="hidden" name="_action" value="status" />
+          <select name="status" class="a-select">
+            {statuses.map((s) => <option value={s} selected={s === o.status}>{ORDER_STATUS_LABEL[s]}</option>)}
+          </select>
+          <input name="note" class="a-input" placeholder="Nota (opcional)" />
+          <button class="a-btn a-btn-primary w-full">Atualizar estado</button>
+        </form>
+      </section>
+
+      <section class="a-card p-6 space-y-2 text-[13.5px]">
+        <p class="a-eyebrow mb-2">Cliente</p>
+        <p class="font-semibold text-base">{fullName || '—'}</p>
+        <p><a href={`mailto:${o.email}`} class="text-brand-red hover:underline">{o.email}</a></p>
+        {c.phone && <p>{c.phone}</p>}
+        {c.cpf && <p class="text-mocha">CPF {c.cpf}</p>}
+        {phoneDigits && (
+          <a href={`https://wa.me/${waPhone}?text=${waText}`} target="_blank" rel="noopener" class="a-btn w-full mt-3 text-white" style="background:#25D366">WhatsApp à cliente</a>
+        )}
+      </section>
+
+      <section class="a-card p-6 space-y-1 text-[13.5px]">
+        <p class="a-eyebrow mb-2">Morada de envio</p>
+        <p>{a.address}, {a.number}{a.complement ? ` · ${a.complement}` : ''}</p>
+        <p>{a.neighborhood}</p>
+        <p>{a.city} — {a.state}</p>
+        <p class="text-mocha">CEP {a.zip}</p>
+        <p class="text-[12px] text-taupe pt-2">{ship ? `${ship.label} · ${ship.eta}` : o.shipping_method}</p>
+      </section>
+
+      <section class="a-card p-6">
+        <p class="a-eyebrow mb-3">Envio & notas internas</p>
+        <form method="POST" class="space-y-3">
+          <input type="hidden" name="_action" value="details" />
+          <div>
+            <label class="a-label" for="tracking_code">Código de rastreio</label>
+            <input class="a-input" id="tracking_code" name="tracking_code" value={o.tracking_code ?? ''} placeholder="ex.: BR123456789BR" />
+          </div>
+          <div>
+            <label class="a-label" for="admin_notes">Notas (só equipa)</label>
+            <textarea class="a-textarea" id="admin_notes" name="admin_notes">{o.admin_notes}</textarea>
+          </div>
+          <button class="a-btn a-btn-ghost w-full">Guardar</button>
+        </form>
+      </section>
+    </aside>
+  </div>
+</AdminLayout>

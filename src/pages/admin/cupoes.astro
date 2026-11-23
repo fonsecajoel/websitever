@@ -1,0 +1,111 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseForRequest } from '../../lib/server/supabase';
+import { formatBRL } from '../../lib/pricing';
+import { mapCoupon, type CouponRow } from '../../lib/server/orders';
+import { fmtDate, num, str } from '../../lib/server/admin/helpers';
+
+const sb = supabaseForRequest(Astro.request, Astro.cookies);
+
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  const action = str(fd, '_action');
+  const code = str(fd, 'code').toUpperCase().replace(/\s+/g, '');
+  let errText = '';
+  let msg = '';
+  if (action === 'create') {
+    const kind = str(fd, 'kind') === 'fixed' ? 'fixed' : 'percent';
+    const value = num(fd, 'value');
+    if (!code || value === null || value <= 0) errText = 'Código e valor são obrigatórios.';
+    else if (kind === 'percent' && value > 100) errText = 'A percentagem não pode passar 100%.';
+    else {
+      const exp = str(fd, 'expires_at');
+      const { error } = await sb.from('coupons').insert({
+        code, kind, value,
+        description: str(fd, 'description'),
+        min_subtotal: num(fd, 'min_subtotal') ?? 0,
+        max_uses: num(fd, 'max_uses'),
+        expires_at: exp ? new Date(`${exp}T23:59:59`).toISOString() : null,
+      });
+      if (error) errText = error.code === '23505' ? 'Já existe um cupão com esse código.' : error.message;
+      else msg = `Cupão ${code} criado.`;
+    }
+  } else if (action === 'toggle') {
+    const { error } = await sb.from('coupons').update({ active: str(fd, 'active') === 'true' }).eq('code', code);
+    errText = error?.message ?? '';
+    msg = 'Cupão atualizado.';
+  } else if (action === 'delete') {
+    const { error } = await sb.from('coupons').delete().eq('code', code);
+    errText = error?.message ?? '';
+    msg = 'Cupão eliminado.';
+  }
+  return Astro.redirect(`/admin/cupoes?${errText ? `err=${encodeURIComponent(errText)}` : `msg=${encodeURIComponent(msg)}`}`);
+}
+
+const { data, error } = await sb.from('coupons').select('*').order('created_at', { ascending: false });
+const rows = (data ?? []) as (CouponRow & { description: string })[];
+---
+<AdminLayout title="Cupões" active="cupoes" subtitle="Descontos e campanhas">
+  {error && <div class="a-flash a-flash-err">{error.message}</div>}
+  <div class="grid xl:grid-cols-3 gap-6">
+    <form method="POST" class="a-card p-6 space-y-4 h-max">
+      <input type="hidden" name="_action" value="create" />
+      <p class="a-eyebrow">Novo cupão</p>
+      <div><label class="a-label" for="code">Código *</label><input class="a-input uppercase" id="code" name="code" required placeholder="VERAO15" /></div>
+      <div><label class="a-label" for="description">Descrição</label><input class="a-input" id="description" name="description" placeholder="Campanha de verão" /></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="a-label" for="kind">Tipo</label>
+          <select class="a-select" id="kind" name="kind"><option value="percent">Percentagem (%)</option><option value="fixed">Valor fixo (R$)</option></select>
+        </div>
+        <div><label class="a-label" for="value">Valor *</label><input class="a-input" id="value" name="value" type="number" step="0.01" min="0.01" required /></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="a-label" for="min_subtotal">Compra mínima</label><input class="a-input" id="min_subtotal" name="min_subtotal" type="number" step="0.01" min="0" value="0" /></div>
+        <div><label class="a-label" for="max_uses">Limite de usos</label><input class="a-input" id="max_uses" name="max_uses" type="number" min="1" placeholder="ilimitado" /></div>
+      </div>
+      <div><label class="a-label" for="expires_at">Expira em</label><input class="a-input" id="expires_at" name="expires_at" type="date" /></div>
+      <button class="a-btn a-btn-primary w-full">Criar cupão</button>
+    </form>
+
+    <div class="a-card xl:col-span-2 overflow-hidden h-max">
+      <div class="overflow-x-auto">
+        <table class="a-table">
+          <thead><tr><th>Código</th><th>Desconto</th><th>Usos</th><th>Expira</th><th>Ativo</th><th></th></tr></thead>
+          <tbody>
+            {rows.length === 0 && <tr><td colspan="6" class="text-center py-12 text-taupe">Sem cupões.</td></tr>}
+            {rows.map((r) => {
+              const c = mapCoupon(r);
+              const expired = c.expiresAt !== null && new Date(c.expiresAt) < new Date();
+              return (
+                <tr>
+                  <td><p class="font-mono font-semibold tracking-wider">{c.code}</p><p class="text-[12px] text-taupe">{r.description}</p></td>
+                  <td>
+                    <p class="font-semibold">{c.kind === 'percent' ? `${c.value}%` : formatBRL(c.value)}</p>
+                    {c.minSubtotal > 0 && <p class="text-[11.5px] text-taupe">mín. {formatBRL(c.minSubtotal)}</p>}
+                  </td>
+                  <td>{c.uses}{c.maxUses !== null ? ` / ${c.maxUses}` : ''}</td>
+                  <td class="text-[12.5px]">{c.expiresAt ? <span class={expired ? 'text-brand-red' : 'text-mocha'}>{fmtDate(c.expiresAt, false)}</span> : '—'}</td>
+                  <td>
+                    <form method="POST">
+                      <input type="hidden" name="_action" value="toggle" />
+                      <input type="hidden" name="code" value={c.code} />
+                      <input type="hidden" name="active" value={c.active ? 'false' : 'true'} />
+                      <button class="flex" aria-label="Ativar/desativar"><input type="checkbox" class="sr-only" tabindex="-1" checked={c.active} /><span class="a-switch"></span></button>
+                    </form>
+                  </td>
+                  <td class="text-right">
+                    <form method="POST" data-confirm={`Eliminar o cupão ${c.code}?`}>
+                      <input type="hidden" name="_action" value="delete" />
+                      <input type="hidden" name="code" value={c.code} />
+                      <button class="a-btn a-btn-danger a-btn-sm">Eliminar</button>
+                    </form>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
