@@ -22,3 +22,10 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Vercel / testes / local
+.vercel/
+coverage/
+.env.*
+!.env.example
+.claude/

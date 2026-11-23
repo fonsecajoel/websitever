@@ -1,0 +1,72 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseForRequest } from '../../lib/server/supabase';
+import { num, str } from '../../lib/server/admin/helpers';
+import { seedSettings } from '../../data/seed';
+import type { StoreSettings } from '../../lib/types';
+
+const sb = supabaseForRequest(Astro.request, Astro.cookies);
+
+if (Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  const pixKey = str(fd, 'pixKey');
+  const value: StoreSettings = {
+    announcement: str(fd, 'announcement'),
+    freeShippingThreshold: Math.max(0, num(fd, 'freeShippingThreshold') ?? seedSettings.freeShippingThreshold),
+    pixDiscountPercent: Math.min(50, Math.max(0, num(fd, 'pixDiscountPercent') ?? 0)),
+    pixKey,
+    pixKeyRaw: str(fd, 'pixKeyRaw') || pixKey.replace(/[^\w@.+-]/g, ''),
+    whatsapp: str(fd, 'whatsapp').replace(/\D/g, ''),
+    email: str(fd, 'email'),
+    instagram: str(fd, 'instagram'),
+  };
+  const { error } = await sb.from('settings').upsert({ key: 'store', value, updated_at: new Date().toISOString() });
+  return Astro.redirect(`/admin/definicoes?${error ? `err=${encodeURIComponent(error.message)}` : `msg=${encodeURIComponent('Definições guardadas — já estão ativas na loja.')}`}`);
+}
+
+const { data } = await sb.from('settings').select('value').eq('key', 'store').maybeSingle();
+const s: StoreSettings = { ...seedSettings, ...((data?.value ?? {}) as Partial<StoreSettings>) };
+---
+<AdminLayout title="Definições" active="definicoes" subtitle="Loja, pagamentos e contactos">
+  <form method="POST" class="grid xl:grid-cols-2 gap-6 max-w-5xl">
+    <section class="a-card p-6 space-y-4">
+      <p class="a-eyebrow">Loja</p>
+      <div>
+        <label class="a-label" for="announcement">Barra de anúncio (separe frases com “·”)</label>
+        <textarea class="a-textarea !min-h-[80px]" id="announcement" name="announcement">{s.announcement}</textarea>
+      </div>
+      <div>
+        <label class="a-label" for="freeShippingThreshold">Frete grátis a partir de (R$)</label>
+        <input class="a-input" id="freeShippingThreshold" name="freeShippingThreshold" type="number" step="0.01" min="0" value={s.freeShippingThreshold} />
+      </div>
+    </section>
+
+    <section class="a-card p-6 space-y-4">
+      <p class="a-eyebrow">Pix</p>
+      <div>
+        <label class="a-label" for="pixKey">Chave Pix (como aparece)</label>
+        <input class="a-input" id="pixKey" name="pixKey" value={s.pixKey} />
+      </div>
+      <div>
+        <label class="a-label" for="pixKeyRaw">Chave Pix (copiar/colar, sem formatação)</label>
+        <input class="a-input" id="pixKeyRaw" name="pixKeyRaw" value={s.pixKeyRaw} />
+      </div>
+      <div>
+        <label class="a-label" for="pixDiscountPercent">Desconto Pix (%)</label>
+        <input class="a-input" id="pixDiscountPercent" name="pixDiscountPercent" type="number" step="0.5" min="0" max="50" value={s.pixDiscountPercent} />
+      </div>
+      <p class="text-[12px] text-taupe">Pagamentos com cartão são processados pelo Stripe — as chaves ficam no ficheiro <code>.env</code> do servidor, nunca aqui.</p>
+    </section>
+
+    <section class="a-card p-6 space-y-4 xl:col-span-2">
+      <p class="a-eyebrow">Contactos</p>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div><label class="a-label" for="whatsapp">WhatsApp (com indicativo)</label><input class="a-input" id="whatsapp" name="whatsapp" value={s.whatsapp} placeholder="5511910828374" /></div>
+        <div><label class="a-label" for="email">E-mail</label><input class="a-input" id="email" name="email" type="email" value={s.email} /></div>
+        <div><label class="a-label" for="instagram">Instagram (URL)</label><input class="a-input" id="instagram" name="instagram" value={s.instagram} /></div>
+      </div>
+    </section>
+
+    <div class="xl:col-span-2"><button class="a-btn a-btn-primary !px-8 !py-3">Guardar definições</button></div>
+  </form>
+</AdminLayout>

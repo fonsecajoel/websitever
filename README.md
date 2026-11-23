@@ -1,43 +1,52 @@
-# Astro Starter Kit: Minimal
+# Santo Salto Store — v2
 
-```sh
-npm create astro@latest -- --template minimal
+Loja online + painel de gestão. **Astro 6 (SSR, Vercel) · Tailwind 4 · Supabase · Stripe · Pix**.
+
+## Arrancar
+
+```bash
+pnpm install
+cp .env.example .env   # preencher as chaves
+pnpm dev               # http://localhost:4321
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Sem `.env` o site funciona com o catálogo de demonstração (checkout e admin ficam desativados).
 
-## 🚀 Project Structure
+## Supabase (uma vez)
 
-Inside of your Astro project, you'll see the following folders and files:
+1. **SQL Editor** → colar e correr `supabase/migrations/0001_init.sql` (tabelas, RLS, bucket `products`).
+2. Correr `supabase/seed.sql` (categorias, coleções, 18 produtos, cupão `BEMVINDA10`).
+3. **Authentication → Users → Add user** com o e-mail da gestão; depois no SQL Editor:
+   ```sql
+   update public.profiles set role = 'admin' where email = 'EMAIL_DA_GESTAO';
+   ```
+4. Copiar `Project URL`, `anon key` e `service_role key` (Settings → API) para o `.env`.
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+## Stripe
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+1. `STRIPE_SECRET_KEY` (Developers → API keys).
+2. Webhook → endpoint `https://O-SEU-DOMINIO/api/stripe/webhook` com os eventos
+   `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+   `checkout.session.async_payment_failed`, `checkout.session.expired` → copiar o `whsec_…` para `STRIPE_WEBHOOK_SECRET`.
+3. Local: `stripe listen --forward-to localhost:4321/api/stripe/webhook`.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## Pagamentos
 
-Any static assets, like images, can be placed in the `public/` directory.
+- **Pix**: gera QR Code + “Copia e Cola” com o valor exato e o nº da encomenda (BR Code EMV). A gestão confirma o pagamento no admin (*Encomendas → Confirmar Pix recebido*).
+- **Stripe**: Stripe Checkout (cartão, Apple/Google Pay); o webhook marca a encomenda como paga ou cancela e repõe stock se expirar.
+- Os preços são **sempre recalculados no servidor**; o stock é reservado ao criar a encomenda.
 
-## 🧞 Commands
+## Estrutura
 
-All commands are run from the root of the project, from a terminal:
+| Pasta | O quê |
+|---|---|
+| `src/pages` | Loja (home, coleções, produto, provador, checkout, conta, pedido) |
+| `src/pages/admin` | Painel: dashboard, produtos, encomendas, clientes, cupões, mensagens, newsletter, coleções, definições |
+| `src/pages/api` | checkout, webhook Stripe, cupões, newsletter, contacto, pesquisa, upload admin |
+| `src/lib` | tipos, preços, Pix, clientes Supabase/Stripe, catálogo |
+| `supabase/` | migração e seed |
+| `tests/` | Vitest (`pnpm test:coverage`, mínimo 80%) |
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+## Scripts
 
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+`pnpm dev` · `pnpm build` · `pnpm check` · `pnpm test` · `pnpm validate` · `pnpm db:seed-sql`

@@ -1,5 +1,5 @@
 import { persistentAtom } from '@nanostores/persistent';
-import { computed } from 'nanostores';
+import { atom, computed } from 'nanostores';
 
 export interface CartItem {
   id: string;
@@ -13,59 +13,44 @@ export interface CartItem {
   quantity: number;
 }
 
-export const cartItems = persistentAtom<CartItem[]>('aurelia:cart', [], {
-  encode: JSON.stringify,
-  decode: JSON.parse,
-});
+const decodeItems = (v: string): CartItem[] => {
+  try {
+    const parsed: unknown = JSON.parse(v);
+    return Array.isArray(parsed) ? (parsed as CartItem[]) : [];
+  } catch {
+    return [];
+  }
+};
 
-export const cartOpen = persistentAtom<boolean>('aurelia:cart-open', false, {
-  encode: String,
-  decode: (v) => v === 'true',
-});
+export const cartItems = persistentAtom<CartItem[]>('santosalto:cart', [], { encode: JSON.stringify, decode: decodeItems });
+export const cartOpen = atom(false);
 
-export const cartCount = computed(cartItems, (items) =>
-  items.reduce((sum, item) => sum + item.quantity, 0)
-);
+export const cartCount = computed(cartItems, (items) => items.reduce((s, i) => s + i.quantity, 0));
+export const cartSubtotal = computed(cartItems, (items) => items.reduce((s, i) => s + i.price * i.quantity, 0));
 
-export const cartSubtotal = computed(cartItems, (items) =>
-  items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-);
+export const lineId = (productId: string, size: string, color: string): string => `${productId}-${size}-${color}`;
 
-export function addToCart(item: Omit<CartItem, 'id'>) {
-  const id = `${item.productId}-${item.size}-${item.color}`;
+export function addToCart(item: Omit<CartItem, 'id'>, open = true): void {
+  const id = lineId(item.productId, item.size, item.color);
   const current = cartItems.get();
   const existing = current.find((i) => i.id === id);
-  if (existing) {
-    cartItems.set(
-      current.map((i) =>
-        i.id === id ? { ...i, quantity: i.quantity + item.quantity } : i
-      )
-    );
-  } else {
-    cartItems.set([...current, { ...item, id }]);
-  }
-  cartOpen.set(true);
+  cartItems.set(
+    existing
+      ? current.map((i) => (i.id === id ? { ...i, quantity: Math.min(10, i.quantity + item.quantity) } : i))
+      : [...current, { ...item, id }],
+  );
+  if (open) cartOpen.set(true);
 }
 
-export function removeFromCart(id: string) {
+export function removeFromCart(id: string): void {
   cartItems.set(cartItems.get().filter((i) => i.id !== id));
 }
 
-export function updateQuantity(id: string, quantity: number) {
+export function updateQuantity(id: string, quantity: number): void {
   if (quantity < 1) return removeFromCart(id);
-  cartItems.set(
-    cartItems.get().map((i) => (i.id === id ? { ...i, quantity } : i))
-  );
+  cartItems.set(cartItems.get().map((i) => (i.id === id ? { ...i, quantity: Math.min(10, quantity) } : i)));
 }
 
-export function clearCart() {
+export function clearCart(): void {
   cartItems.set([]);
-}
-
-export function openCart() {
-  cartOpen.set(true);
-}
-
-export function closeCart() {
-  cartOpen.set(false);
 }

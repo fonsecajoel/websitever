@@ -1,0 +1,116 @@
+---
+---
+
+<div id="search-palette" class="fixed inset-0 z-[70] hidden" role="dialog" aria-modal="true" aria-label="Pesquisar produtos" transition:persist="search">
+  <div data-sp-backdrop class="absolute inset-0 bg-night/60 backdrop-blur-sm"></div>
+  <div class="relative mx-auto mt-[8vh] w-[min(720px,calc(100%-2rem))] rounded-[28px] bg-bone shadow-lift overflow-hidden animate-fade-up">
+    <div class="flex items-center gap-3 px-5 md:px-7 h-16 md:h-20 border-b border-taupe/25">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-brand shrink-0"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></svg>
+      <input data-sp-input type="search" placeholder="Procure por scarpin, sandália, nude, 9cm…" class="flex-1 bg-transparent outline-none font-display text-xl md:text-2xl text-ink placeholder:text-taupe" autocomplete="off" />
+      <kbd class="text-[10px] text-taupe border border-taupe/40 rounded px-1.5 py-0.5">ESC</kbd>
+    </div>
+    <div class="px-5 md:px-7 py-3 flex gap-2 flex-wrap border-b border-taupe/15" data-sp-chips>
+      {['Scarpin', 'Sandália', 'Bota', 'Bolsa', 'Noir', 'Novidades', 'Salto baixo'].map((c) => (
+        <button type="button" class="chip bg-blush text-cocoa hover:bg-brand hover:text-bone transition" data-q={c}>{c}</button>
+      ))}
+    </div>
+    <ul data-sp-results class="max-h-[56vh] overflow-y-auto p-3"></ul>
+    <p data-sp-empty class="hidden px-7 py-10 text-center text-mocha">Nada encontrado. Fale com uma consultora no WhatsApp ✦</p>
+    <div class="hidden md:flex items-center justify-between px-7 py-3 text-[10px] uppercase tracking-[0.2em] text-taupe border-t border-taupe/15">
+      <span>↑↓ navegar · ↵ abrir</span><span>Santo Salto</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { navigate } from 'astro:transitions/client';
+  import type { SearchItem } from '../pages/api/search.json';
+  import { formatBRL } from '../scripts/ui';
+
+  const root = document.getElementById('search-palette');
+  if (root) {
+    const input = root.querySelector<HTMLInputElement>('[data-sp-input]')!;
+    const results = root.querySelector<HTMLUListElement>('[data-sp-results]')!;
+    const emptyEl = root.querySelector<HTMLElement>('[data-sp-empty]')!;
+    let data: SearchItem[] | null = null;
+    let active = 0;
+    let shown: SearchItem[] = [];
+
+    const norm = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
+
+    const score = (item: SearchItem, terms: string[]): number => {
+      const hay = norm([item.name, item.category, item.collection ?? '', item.colors.join(' '), item.heel ?? '', item.isNew ? 'novidades novo' : '', item.bestSeller ? 'best seller mais vendidos' : '', item.heel && parseFloat(item.heel) <= 4 ? 'salto baixo conforto' : ''].join(' '));
+      let s = 0;
+      for (const t of terms) {
+        if (!hay.includes(t)) return 0;
+        s += norm(item.name).includes(t) ? 3 : 1;
+      }
+      return s;
+    };
+
+    const render = (): void => {
+      const q = norm(input.value.trim());
+      const terms = q.split(/\s+/).filter(Boolean);
+      const list = data ?? [];
+      shown = terms.length
+        ? list.map((i) => ({ i, s: score(i, terms) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).map((x) => x.i).slice(0, 8)
+        : list.filter((i) => i.isNew || i.bestSeller).slice(0, 6);
+      active = 0;
+      emptyEl.classList.toggle('hidden', shown.length > 0 || data === null);
+      results.innerHTML = shown.map((i, idx) => `
+        <li>
+          <a href="/produto/${esc(i.slug)}" data-idx="${idx}" class="sp-item flex items-center gap-4 p-3 rounded-2xl transition">
+            <img src="${esc(i.image)}" alt="" class="w-14 h-16 object-cover rounded-xl bg-cream" loading="lazy" />
+            <span class="flex-1 min-w-0">
+              <span class="block font-display text-lg text-ink truncate">${esc(i.name)}</span>
+              <span class="block text-[11px] uppercase tracking-[0.18em] text-mocha">${esc(i.category)}${i.heel ? ' · ' + esc(i.heel) : ''}</span>
+            </span>
+            <span class="text-sm text-ink">${formatBRL(i.price)}</span>
+          </a>
+        </li>`).join('');
+      highlight();
+    };
+
+    const highlight = (): void => {
+      results.querySelectorAll<HTMLElement>('.sp-item').forEach((el, i) => {
+        el.classList.toggle('bg-blush', i === active);
+        if (i === active) el.scrollIntoView({ block: 'nearest' });
+      });
+    };
+
+    const open = async (): Promise<void> => {
+      root.classList.remove('hidden');
+      document.documentElement.style.overflow = 'hidden';
+      input.value = '';
+      input.focus();
+      if (!data) {
+        results.innerHTML = '<li class="p-6 text-center text-taupe text-sm">A carregar…</li>';
+        try { data = (await (await fetch('/api/search.json')).json()) as SearchItem[]; } catch { data = []; }
+      }
+      render();
+    };
+    const close = (): void => {
+      root.classList.add('hidden');
+      document.documentElement.style.overflow = '';
+    };
+
+    input.addEventListener('input', render);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(active + 1, shown.length - 1); highlight(); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); highlight(); }
+      if (e.key === 'Enter' && shown[active]) { e.preventDefault(); close(); void navigate(`/produto/${shown[active].slug}`); }
+    });
+    root.querySelector('[data-sp-backdrop]')?.addEventListener('click', close);
+    root.querySelectorAll<HTMLButtonElement>('[data-q]').forEach((b) => b.addEventListener('click', () => { input.value = b.dataset.q ?? ''; render(); input.focus(); }));
+    results.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('a')) close(); });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); void open(); }
+      if (e.key === 'Escape' && !root.classList.contains('hidden')) close();
+    });
+    document.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('[data-open-search]')) void open();
+    });
+  }
+</script>

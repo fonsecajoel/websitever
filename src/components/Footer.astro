@@ -1,130 +1,81 @@
 ---
+import type { StoreSettings } from '../lib/types';
+interface Props { settings: StoreSettings }
+const { settings } = Astro.props;
 const year = new Date().getFullYear();
-
 const cols = [
-  {
-    title: 'Santo Salto',
-    links: [
-      { label: 'Quem somos', href: '/sobre' },
-      { label: 'Marca Própria', href: '/sobre' },
-      { label: 'Acessórios', href: '/acessorios' },
-      { label: 'Coleções', href: '/colecoes' },
-    ],
-  },
-  {
-    title: 'Atendimento',
-    links: [
-      { label: 'Central de ajuda', href: '/ajuda' },
-      { label: 'Trocas e devoluções', href: '/trocas' },
-      { label: 'Contato', href: '/contato' },
-    ],
-  },
-  {
-    title: 'Compre',
-    links: [
-      { label: 'Novidades', href: '/colecao/novidades' },
-      { label: 'Saltos', href: '/colecao/scarpin' },
-      { label: 'Acessórios', href: '/acessorios' },
-    ],
-  },
+  { title: 'Loja', links: [['Novidades', '/colecao/novidades'], ['Saltos', '/colecao/scarpin'], ['Sandálias', '/colecao/sandalia'], ['Bolsas', '/colecao/bolsa'], ['Coleções', '/colecoes'], ['Provador de estilo', '/provador']] },
+  { title: 'Ajuda', links: [['Central de ajuda', '/ajuda'], ['Trocas e devoluções', '/trocas'], ['Acompanhar encomenda', '/conta'], ['Contacto', '/contato']] },
+  { title: 'A marca', links: [['Sobre nós', '/sobre'], ['Atelier', '/atelier'], ['Sustentabilidade', '/sustentabilidade'], ['Privacidade', '/privacidade'], ['Termos', '/termos'], ['Cookies', '/cookies']] },
 ];
 ---
 
-<footer class="text-bone mt-32" style="background-color: #3D0604;">
-  <div class="container-aurelia py-20 lg:py-28">
-    <div class="grid lg:grid-cols-12 gap-12 lg:gap-16 mb-20">
-      <div class="lg:col-span-4">
-        <img src="/logo-navbar.png" alt="Santo Salto" class="h-14 mb-6 object-contain" />
-        <p class="font-display text-2xl md:text-3xl leading-tight text-balance mb-6" style="color: #FFF8F8;">
-          Elevando mulheres com elegância e poder.
-        </p>
+<footer class="relative bg-night text-bone/80 overflow-hidden mt-24">
+  <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-brand/20 blur-[140px] pointer-events-none"></div>
 
-        <!-- Localização -->
-        <div class="mb-6 text-sm leading-relaxed" style="color: rgba(255,248,248,0.75);">
-          <p class="eyebrow mb-2" style="color: #E2BC44;">Localização</p>
-          <p>
-            Shopping Paineiras<br/>
-            Loja 113<br/>
-            Avenida 9 de Julho, 1155<br/>
-            Chácara Urbana, Jundiaí – São Paulo<br/>
-            13.201-908 · Brasil
-          </p>
-        </div>
-
-        <!-- Atendimento -->
-        <div class="mb-8 text-sm leading-relaxed" style="color: rgba(255,248,248,0.75);">
-          <p class="eyebrow mb-2" style="color: #E2BC44;">Atendimento</p>
-          <p>
-            <a href="mailto:santosaltovendas@gmail.com" class="link-underline hover:opacity-100" style="color: #E2BC44;">santosaltovendas@gmail.com</a><br/>
-            WhatsApp: <a href="https://wa.me/5511910828374" target="_blank" rel="noopener noreferrer" class="link-underline hover:opacity-100" style="color: #E2BC44;">+55 11 91082-8374</a>
-          </p>
-        </div>
-
-        <form class="flex border-b pb-2 max-w-md" style="border-color: rgba(255,248,248,0.4);" onsubmit="event.preventDefault(); this.querySelector('input').value=''; this.querySelector('button span').textContent='Inscrita ✓'">
-          <input
-            type="email"
-            required
-            placeholder="seu@email.com"
-            class="bg-transparent flex-1 py-2 outline-none text-sm"
-            style="color: #FFF8F8;"
-          />
-          <button type="submit" class="eyebrow hover:opacity-80 transition-colors" style="color: #FFF8F8;">
-            <span>Inscrever</span>
-          </button>
-        </form>
-        <p class="mt-3 text-xs" style="color: rgba(255,248,248,0.55);">
-          Ao inscrever-se aceita a nossa <a href="/privacidade" class="link-underline">política de privacidade</a>.
-        </p>
-      </div>
-
-      <div class="lg:col-span-8 grid sm:grid-cols-3 gap-10 lg:gap-16">
-        {cols.map((col) => (
-          <div>
-            <h4 class="eyebrow mb-5" style="color: #E2BC44;">{col.title}</h4>
-            <ul class="space-y-3">
-              {col.links.map((l) => (
-                <li>
-                  <a href={l.href} class="text-sm link-underline hover:opacity-100" style="color: rgba(255,248,248,0.80);">{l.label}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+  <section class="relative container-site pt-20 pb-14 grid lg:grid-cols-12 gap-14 border-b border-gold/15">
+    <div class="lg:col-span-5">
+      <p class="eyebrow !text-gold mb-5">Clube Santo Salto</p>
+      <h2 class="display-md !text-bone mb-4 text-balance">Lançamentos em primeira mão. <em class="text-gold-gradient not-italic script text-[1.2em]">Sempre.</em></h2>
+      <p class="text-bone/60 mb-8 max-w-md">Receba novidades, edições limitadas e 10% na primeira compra.</p>
+      <form id="newsletter-form" class="flex flex-col sm:flex-row gap-3 max-w-md">
+        <label class="sr-only" for="nl-email">E-mail</label>
+        <input id="nl-email" name="email" type="email" required placeholder="o.seu@email.com" class="flex-1 rounded-full bg-white/5 border border-gold/25 px-6 py-4 text-bone placeholder:text-bone/40 focus:outline-none focus:border-gold" />
+        <button class="btn-gold">Quero entrar</button>
+      </form>
+      <p id="newsletter-msg" class="text-sm text-gold-soft mt-3 min-h-5" role="status"></p>
     </div>
+    <div class="lg:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-10">
+      {cols.map((c) => (
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.3em] text-gold mb-5">{c.title}</p>
+          <ul class="space-y-3 text-sm">
+            {c.links.map(([label, href]) => <li><a href={href} class="link-underline hover:text-bone transition">{label}</a></li>)}
+          </ul>
+        </div>
+      ))}
+    </div>
+  </section>
 
-    <div class="border-t pt-10 grid md:grid-cols-3 gap-6 items-center" style="border-color: rgba(255,248,248,0.15);">
-      <div class="text-xs order-2 md:order-1" style="color: rgba(255,248,248,0.55);">
-        Copyright Santo Salto - 56159388000122 - {year}. Todos os direitos reservados.
-      </div>
-      <div class="flex justify-center gap-5 order-1 md:order-2">
-        <!-- Instagram -->
-        <a href="https://www.instagram.com/santosaltostore?igsh=MWgzNGNvbjVjaWQ4YQ%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" aria-label="Instagram Santo Salto" class="hover:opacity-100 transition-opacity" style="color: rgba(255,248,248,0.75);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-            <rect x="3" y="3" width="18" height="18" rx="5" />
-            <circle cx="12" cy="12" r="4" />
-            <circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" />
-          </svg>
-        </a>
-        <!-- Email -->
-        <a href="mailto:santosaltovendas@gmail.com" aria-label="Email Santo Salto" class="hover:opacity-100 transition-opacity" style="color: rgba(255,248,248,0.75);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-            <rect x="2" y="4" width="20" height="16" rx="2" />
-            <path d="M2 7l10 7 10-7" />
-          </svg>
-        </a>
-        <!-- WhatsApp badge -->
-        <a href="https://wa.me/5511910828374" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Santo Salto" class="hover:opacity-100 transition-opacity" style="color: rgba(255,248,248,0.75);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-          </svg>
-        </a>
-      </div>
-      <div class="flex md:justify-end gap-4 text-xs order-3" style="color: rgba(255,248,248,0.55);">
-        <a href="/privacidade" class="hover:opacity-100">Privacidade</a>
-        <a href="/termos" class="hover:opacity-100">Termos</a>
-        <a href="/cookies" class="hover:opacity-100">Cookies</a>
-      </div>
+  <div class="relative container-site py-10 grid md:grid-cols-3 gap-6 items-center text-sm">
+    <div class="space-y-1">
+      <a href={`mailto:${settings.email}`} class="block hover:text-gold transition">{settings.email}</a>
+      <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noopener noreferrer" class="block hover:text-gold transition">WhatsApp +{settings.whatsapp.replace(/^(\d{2})(\d{2})(\d{5})(\d{4})$/, '$1 $2 $3-$4')}</a>
+    </div>
+    <div class="flex md:justify-center gap-3">
+      <a href={settings.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="w-11 h-11 rounded-full border border-gold/30 grid place-items-center hover:bg-gold hover:text-night transition">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+      </a>
+      <a href={`https://wa.me/${settings.whatsapp}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" class="w-11 h-11 rounded-full border border-gold/30 grid place-items-center hover:bg-gold hover:text-night transition">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2z" opacity=".9"/></svg>
+      </a>
+    </div>
+    <div class="flex md:justify-end gap-2 items-center text-[10px] uppercase tracking-[0.2em] text-bone/50">
+      <span class="chip border border-gold/25">Pix</span><span class="chip border border-gold/25">Stripe</span><span class="chip border border-gold/25">Visa · Master · Amex</span>
     </div>
   </div>
+
+  <div class="relative select-none pointer-events-none overflow-hidden">
+    <p class="script text-gold/15 text-center leading-none whitespace-nowrap" style="font-size: clamp(5rem, 22vw, 22rem); margin-bottom: -0.25em;">Santo Salto</p>
+  </div>
+  <div class="relative container-site py-6 flex flex-col md:flex-row justify-between gap-2 text-[11px] text-bone/45 border-t border-gold/10">
+    <p>© {year} Santo Salto Store · CNPJ 56.159.388/0001-22</p>
+    <p>Elevando mulheres com elegância e poder.</p>
+  </div>
 </footer>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const form = document.getElementById('newsletter-form') as HTMLFormElement | null;
+    const msg = document.getElementById('newsletter-msg');
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = new FormData(form).get('email');
+      if (msg) msg.textContent = 'A enviar…';
+      const res = await fetch('/api/newsletter', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) });
+      const out = (await res.json()) as { ok?: boolean; error?: string };
+      if (msg) msg.textContent = out.ok ? 'Bem-vinda ao Clube! Use o cupão BEMVINDA10 ✦' : out.error ?? 'Não foi possível subscrever.';
+      if (out.ok) form.reset();
+    });
+  });
+</script>

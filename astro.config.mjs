@@ -3,16 +3,10 @@ import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 import vercel from '@astrojs/vercel';
 
-// https://astro.build/config
 export default defineConfig({
   output: 'server',
   adapter: vercel(),
-  site: 'https://aurelia.example.com',
-  vite: {
-    plugins: [tailwindcss()],
-  },
-  image: {
-    domains: ['images.unsplash.com'],
-    remotePatterns: [{ protocol: 'https' }],
-  },
+  site: 'https://santosaltostore.com.br',
+  prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
+  vite: { plugins: [tailwindcss()] },
 });

@@ -1,105 +1,125 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProductCard from '../components/ProductCard.astro';
-import { collections } from '../data/products';
-import { getProductsFromDB } from '../lib/db';
+import { getCollections, getProducts, getSettings } from '../lib/server/catalog';
+import { formatBRL } from '../lib/pricing';
 
-const products = await getProductsFromDB();
+const [products, collections, settings] = await Promise.all([getProducts(), getCollections(), getSettings()]);
+const novidades = products.filter((p) => p.isNew).concat(products.filter((p) => !p.isNew)).slice(0, 8);
+const bestSellers = products.filter((p) => p.badges.includes('best-seller')).slice(0, 4);
+const featured = bestSellers[0] ?? products[0];
 
-const heroImage = '/img-1754-v2.png';
-const editorialImage = '/img-1757-v2.png';
-const atelierImage = 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=1800&q=85';
-
-const novidades = products.filter((p) => p.isNew).slice(0, 4);
-const bestSellers = products.filter((p) => p.badges?.includes('best-seller')).slice(0, 4);
-const heritagePieces = products.filter((p) => p.collection === 'heritage').slice(0, 3);
-
-const categoryShowcase = [
-  { label: 'Saltos', href: '/colecao/scarpin', img: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=900&q=80' },
-  { label: 'Sandálias', href: '/colecao/sandalia', img: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=900&q=80' },
-  { label: 'Acessórios', href: '/acessorios', img: 'https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=900&q=80' },
-  { label: 'Tênis', href: '/colecao/tenis', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80' },
-  { label: 'Botas', href: '/colecao/bota', img: 'https://images.unsplash.com/photo-1605812860427-4024433a70fd?auto=format&fit=crop&w=900&q=80' },
-  { label: 'Bolsas', href: '/colecao/bolsa', img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=900&q=80' },
+const categories = [
+  { label: 'Saltos', href: '/colecao/scarpin', img: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=1200&q=80', span: 'md:col-span-2 md:row-span-2' },
+  { label: 'Sandálias', href: '/colecao/sandalia', img: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&w=900&q=80', span: '' },
+  { label: 'Bolsas', href: '/colecao/bolsa', img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=900&q=80', span: '' },
+  { label: 'Tênis', href: '/colecao/tenis', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80', span: '' },
+  { label: 'Botas', href: '/colecao/bota', img: 'https://images.unsplash.com/photo-1605812860427-4024433a70fd?auto=format&fit=crop&w=900&q=80', span: '' },
 ];
 
 const testimonials = [
-  { quote: 'A qualidade do couro e o conforto do salto são incomparáveis. Uso o Santo Salto há um ano e parece novo.', author: 'Beatriz M.', city: 'São Paulo' },
+  { quote: 'A qualidade e o conforto do salto são incomparáveis. Uso o meu Santo Salto há um ano e parece novo.', author: 'Beatriz M.', city: 'São Paulo' },
   { quote: 'Recebi a minha compra embalada como uma joia. A entrega impecável combina com o produto.', author: 'Mariana L.', city: 'Lisboa' },
-  { quote: 'Amo todas as peças Santo Salto que tenho. Minha marca favorita até aqui.', author: 'Renata C.', city: 'Belo Horizonte' },
+  { quote: 'Amo todas as peças Santo Salto que tenho. A minha marca favorita até aqui.', author: 'Renata C.', city: 'Belo Horizonte' },
 ];
 ---
 
-<BaseLayout
-  title="Aurelia — Santo Salto desde 2023"
-  description="Santo Salto — calçado feminino com marca própria. Saltos, sandálias e acessórios. Elevando mulheres com elegância e poder."
-  image={heroImage}
->
-  <section class="relative h-[88vh] min-h-[640px] max-h-[900px] overflow-hidden">
-    <div class="absolute inset-0">
-      <img
-        src={heroImage}
-        alt="Sapatos Santo Salto — Coleção Salto Alto"
-        fetchpriority="high"
-        class="w-full h-full object-cover scale-105 animate-float"
-      />
-      <div class="absolute inset-0 bg-gradient-to-b from-cocoa/20 via-cocoa/10 to-bone/40"></div>
-      <div class="absolute inset-0 bg-gradient-to-r from-cocoa/30 via-transparent to-transparent"></div>
-    </div>
+<BaseLayout transparentHeader={false}>
+  <!-- ═════════ HERO ═════════ -->
+  <section class="hero relative -mt-[88px] pt-[88px] min-h-[100svh] overflow-hidden bg-blush grain" data-hero>
+    <div class="hero-blob absolute w-[60vw] h-[60vw] max-w-[900px] max-h-[900px] rounded-full bg-gradient-to-br from-brand/35 via-rose/30 to-gold/30 blur-[100px] pointer-events-none" aria-hidden="true"></div>
 
-    <div class="relative h-full container-aurelia flex items-end pb-20 lg:pb-32">
-      <div class="max-w-2xl text-bone animate-fade-up">
-        <p class="eyebrow text-bone/85 mb-6">Coleção Salto Alto · Outono–Inverno</p>
-        <h1 class="display-xl text-balance mb-8" style="color: #F5EFE6;">
-          Passos com<br/><em class="italic font-light">história.</em>
+    <div class="relative container-site grid lg:grid-cols-12 gap-10 items-center min-h-[calc(100svh-88px)] py-10 lg:py-0">
+      <div class="lg:col-span-6 relative z-10">
+        <p class="eyebrow mb-6 animate-fade-up">Marca própria · Coleção Salto Alto</p>
+        <h1 class="display-xl text-ink">
+          <span class="split-line"><span>Eleve</span></span>
+          <span class="split-line"><span style="animation-delay:.12s" class="italic text-brand">cada</span></span>
+          <span class="split-line"><span style="animation-delay:.24s">passo.</span></span>
         </h1>
-        <p class="text-lg md:text-xl text-bone/90 max-w-xl mb-10 leading-relaxed font-light">
-          Elevando mulheres com elegância e poder — marca própria e multimarcas selecionadas.
+        <p class="script text-gold-gradient text-5xl md:text-6xl -mt-2 md:-mt-4 ml-1 animate-fade-up" style="animation-delay:.5s">Santo Salto</p>
+        <p class="text-lg text-mocha max-w-md mt-6 mb-10 animate-fade-up" style="animation-delay:.6s">
+          Calçado feminino com assinatura própria — elegância e poder para a mulher que sabe escolher.
         </p>
-        <div class="flex flex-wrap gap-4">
-          <a href="/colecao/novidades" class="btn-primary" style="background-color: #F5EFE6; color: #2E1F15;">
-            Ver coleção Salto Alto
-          </a>
-          <a href="/atelier" class="btn-ghost" style="border-color: #F5EFE6; color: #F5EFE6;">
-            Conheça a marca própria
-          </a>
+        <div class="flex flex-wrap gap-3 animate-fade-up" style="animation-delay:.7s">
+          <a href="/colecao/novidades" class="btn-primary">Comprar novidades <span aria-hidden="true">→</span></a>
+          <a href="/provador" class="btn-ghost text-ink">Provador de estilo ✦</a>
         </div>
+        <dl class="mt-14 grid grid-cols-3 gap-6 max-w-md animate-fade-up" style="animation-delay:.85s">
+          <div><dt class="text-[10px] uppercase tracking-[0.2em] text-mocha">Clientes</dt><dd class="font-display text-3xl text-ink" data-count="4800">0</dd></div>
+          <div><dt class="text-[10px] uppercase tracking-[0.2em] text-mocha">Avaliação</dt><dd class="font-display text-3xl text-ink">4.9<span class="text-gold">★</span></dd></div>
+          <div><dt class="text-[10px] uppercase tracking-[0.2em] text-mocha">Desde</dt><dd class="font-display text-3xl text-ink">2023</dd></div>
+        </dl>
+      </div>
+
+      <div class="lg:col-span-6 relative h-[62vh] lg:h-[80vh]">
+        <div class="hero-arch absolute inset-0 lg:inset-y-0 lg:left-[8%] lg:right-0 overflow-hidden reveal-mask" data-parallax="0.08">
+          <img src="/img-1757-v2.png" alt="Scarpin Santo Salto com tachas sobre bandeja de prata" class="w-full h-full object-cover scale-110" fetchpriority="high" />
+          <div class="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent"></div>
+        </div>
+
+        <div class="absolute -left-2 lg:-left-6 top-[12%] w-28 h-28 md:w-36 md:h-36 animate-spin-slow" aria-hidden="true">
+          <svg viewBox="0 0 200 200" class="w-full h-full">
+            <defs><path id="circ" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0" /></defs>
+            <circle cx="100" cy="100" r="99" fill="#3D0604" />
+            <text font-size="12.5" letter-spacing="2.6" fill="#E2BC44" font-family="Inter"><textPath href="#circ">MARCA PRÓPRIA · DESDE 2023 · SANTO SALTO · </textPath></text>
+            <text x="100" y="113" text-anchor="middle" font-size="38" fill="#E2BC44" font-family="Pinyon Script">S</text>
+          </svg>
+        </div>
+
+        {featured && (
+          <a href={`/produto/${featured.slug}`} class="glass absolute right-3 md:right-6 bottom-6 md:bottom-10 rounded-3xl p-3 pr-5 flex items-center gap-4 shadow-lift animate-float max-w-[300px]" data-cursor="Ver">
+            <img src={featured.images[0]?.src} alt="" class="w-16 h-20 rounded-2xl object-cover" />
+            <span>
+              <span class="chip bg-gold text-night mb-1">Mais desejado</span>
+              <span class="block font-display text-xl text-ink leading-tight">{featured.name}</span>
+              <span class="block text-sm text-mocha">{formatBRL(featured.price)}</span>
+            </span>
+          </a>
+        )}
       </div>
     </div>
 
-    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-bone/80 flex flex-col items-center gap-2">
-      <span class="text-[10px] uppercase tracking-[0.4em]">Descubra</span>
-      <div class="w-px h-12 bg-bone/60 animate-pulse"></div>
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-2 text-mocha">
+      <span class="text-[10px] uppercase tracking-[0.4em]">Role</span>
+      <span class="w-px h-10 bg-gradient-to-b from-brand to-transparent"></span>
     </div>
   </section>
 
+  <!-- ═════════ MARQUEE ═════════ -->
+  <section class="py-8 md:py-10 border-y border-taupe/20 overflow-hidden bg-bone" aria-hidden="true">
+    <div class="flex w-max animate-marquee-fast">
+      {[0, 1].map(() => (
+        <div class="flex shrink-0 items-center">
+          {['Scarpins', 'Sandálias', 'Mules', 'Tamancos', 'Botas', 'Bolsas', 'Rasteiras', 'Tênis'].map((w, i) => (
+            <span class="flex items-center">
+              <span class:list={['font-display text-5xl md:text-7xl px-8', i % 2 ? 'text-outline italic' : 'text-ink']}>{w}</span>
+              <span class="text-gold text-2xl">✦</span>
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- ═════════ CATEGORIAS BENTO ═════════ -->
   <section class="py-20 lg:py-28">
-    <div class="container-aurelia">
-      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+    <div class="container-site">
+      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
         <div>
           <p class="eyebrow mb-3">Por categoria</p>
-          <h2 class="display-md text-balance">Encontre o seu próximo par.</h2>
+          <h2 class="display-lg text-balance max-w-2xl">Encontre o seu <em class="text-brand">próximo par.</em></h2>
         </div>
-        <a href="/colecoes" class="eyebrow text-cocoa link-underline">Ver tudo</a>
+        <a href="/colecoes" class="eyebrow link-underline">Ver tudo →</a>
       </div>
-
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-        {categoryShowcase.map((cat, i) => (
-          <a
-            href={cat.href}
-            class="reveal group relative aspect-[3/4] overflow-hidden bg-cream block"
-            style={`transition-delay: ${i * 60}ms`}
-          >
-            <img
-              src={cat.img}
-              alt={cat.label}
-              loading="lazy"
-              class="w-full h-full object-cover transition-transform duration-[1200ms] group-hover:scale-110"
-              style="transition-timing-function: var(--ease-silk);"
-            />
-            <div class="absolute inset-0 bg-gradient-to-t from-cocoa/60 via-cocoa/0 to-transparent"></div>
-            <div class="absolute bottom-4 left-4 right-4">
-              <p class="font-display text-xl md:text-2xl text-bone leading-tight">{cat.label}</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 md:grid-rows-2 gap-3 md:gap-4 md:h-[78vh] md:min-h-[560px]">
+        {categories.map((c, i) => (
+          <a href={c.href} class:list={['reveal group relative overflow-hidden rounded-[26px] bg-cream min-h-[220px]', c.span, i === 0 && 'col-span-2']} style={`transition-delay:${i * 70}ms`} data-cursor="Explorar">
+            <img src={c.img} alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover transition-transform duration-[1600ms] group-hover:scale-110" style="transition-timing-function:var(--ease-silk)" />
+            <div class="absolute inset-0 bg-gradient-to-t from-night/70 via-night/0 to-transparent"></div>
+            <div class="absolute inset-x-5 bottom-5 flex items-end justify-between">
+              <p class:list={['font-display text-bone leading-none', i === 0 ? 'text-5xl md:text-7xl' : 'text-3xl md:text-4xl']}>{c.label}</p>
+              <span class="w-11 h-11 rounded-full glass grid place-items-center text-ink -rotate-45 group-hover:rotate-0 transition-transform duration-500">→</span>
             </div>
           </a>
         ))}
@@ -107,201 +127,268 @@ const testimonials = [
     </div>
   </section>
 
-  <section class="py-20 lg:py-28 bg-cream">
-    <div class="container-aurelia">
-      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+  <!-- ═════════ NOVIDADES (rail) ═════════ -->
+  <section class="py-20 lg:py-28 bg-cream relative overflow-hidden">
+    <div class="container-site">
+      <div class="reveal flex items-end justify-between gap-6 mb-10">
         <div>
           <p class="eyebrow mb-3">Recém-chegados</p>
-          <h2 class="display-md text-balance max-w-xl">Novidades que pedem para serem usadas hoje.</h2>
+          <h2 class="display-lg max-w-xl text-balance">Novidades que pedem para ser usadas <em class="script text-gold-gradient not-italic">hoje.</em></h2>
         </div>
-        <a href="/colecao/novidades" class="eyebrow text-cocoa link-underline">Explorar novidades</a>
+        <div class="hidden md:flex gap-2">
+          <button class="rail-btn" data-rail-prev aria-label="Anterior">←</button>
+          <button class="rail-btn" data-rail-next aria-label="Seguinte">→</button>
+        </div>
       </div>
+    </div>
+    <div class="rail no-scrollbar flex gap-4 md:gap-6 overflow-x-auto snap-x snap-mandatory pb-6 px-4 md:px-10 lg:px-14 scroll-px-4 md:scroll-px-10 lg:scroll-px-14" data-rail>
+      {novidades.map((p, i) => (
+        <div class="snap-start shrink-0 w-[72vw] sm:w-[44vw] md:w-[31vw] lg:w-[23vw] max-w-[380px]">
+          <ProductCard product={p} priority={i < 2} index={i} />
+        </div>
+      ))}
+    </div>
+    <div class="container-site mt-4">
+      <div class="h-px bg-taupe/30 relative"><span class="absolute left-0 top-0 h-px bg-brand transition-[width] duration-300" data-rail-progress style="width:20%"></span></div>
+    </div>
+  </section>
 
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12 md:gap-x-6">
-        {novidades.map((p, i) => (
-          <div class="reveal" style={`transition-delay: ${i * 80}ms`}>
-            <ProductCard product={p} priority={i < 2} />
+  <!-- ═════════ EDITORIAL NOIR ═════════ -->
+  <section class="relative bg-night text-bone overflow-hidden">
+    <div class="grid lg:grid-cols-2 min-h-[90vh]">
+      <div class="relative h-[60vh] lg:h-auto overflow-hidden">
+        <img src="/img-1754-v2.png" alt="Composição de sapatos Santo Salto" loading="lazy" class="absolute inset-0 w-full h-[120%] object-cover" data-parallax="-0.12" />
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent to-night/80 hidden lg:block"></div>
+      </div>
+      <div class="relative flex items-center px-6 md:px-16 lg:px-20 py-20">
+        <div class="reveal max-w-lg">
+          <p class="eyebrow !text-gold mb-6">Editorial · Heritage</p>
+          <h2 class="display-lg !text-bone mb-8 text-balance">Estilo não é seguir tendências. <em class="text-gold-gradient">É saber escolher.</em></h2>
+          <p class="text-bone/70 leading-relaxed mb-10 text-pretty">A nossa marca própria nasce da paixão pela moda feminina e da curadoria criteriosa de cada peça. Design, identidade e qualidade — para durar uma vida inteira.</p>
+          <div class="grid grid-cols-3 gap-6 mb-10 border-y border-gold/15 py-6">
+            <div><p class="font-display text-4xl text-gold" data-count="100">0</p><p class="text-[10px] uppercase tracking-[0.2em] text-bone/60">% curadoria</p></div>
+            <div><p class="font-display text-4xl text-gold" data-count="30">0</p><p class="text-[10px] uppercase tracking-[0.2em] text-bone/60">dias p/ trocar</p></div>
+            <div><p class="font-display text-4xl text-gold" data-count="6">0</p><p class="text-[10px] uppercase tracking-[0.2em] text-bone/60">x sem juros</p></div>
           </div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <section class="relative min-h-[80vh] grid lg:grid-cols-2 overflow-hidden">
-    <div class="relative bg-cocoa text-bone flex items-center px-8 md:px-16 lg:px-24 py-20 lg:py-32 order-2 lg:order-1">
-      <div class="reveal max-w-md">
-        <p class="eyebrow text-gold-soft mb-5">Editorial · 02</p>
-        <h2 class="font-display text-4xl md:text-5xl lg:text-6xl leading-[1.05] mb-7 text-balance" style="color: #F5EFE6;">
-          A trama que conta uma história.
-        </h2>
-        <p class="text-bone/85 leading-relaxed mb-8 text-pretty">
-          A nossa marca própria nasce da paixão pela moda feminina e da escolha criteriosa de cada peça.
-          Cada par da Coleção Heritage carrega a identidade Santo Salto — e dura uma vida inteira.
-        </p>
-        <div class="flex flex-wrap gap-3">
-          <a href="/colecoes/heritage" class="btn-ghost" style="border-color: #F5EFE6; color: #F5EFE6;">
-            Coleção Heritage
-          </a>
-          <a href="/sobre" class="text-xs uppercase tracking-[0.2em] py-4 link-underline" style="color: #D4B27A;">
-            Sobre a nossa marca própria
-          </a>
-        </div>
-      </div>
-    </div>
-    <div class="relative h-[60vh] lg:h-auto order-1 lg:order-2 overflow-hidden">
-      <img
-        src={editorialImage}
-        alt="Trabalho artesanal — Coleção Heritage"
-        loading="lazy"
-        class="absolute inset-0 w-full h-full object-cover"
-      />
-    </div>
-  </section>
-
-  <section class="py-20 lg:py-28">
-    <div class="container-aurelia">
-      <div class="reveal text-center mb-14">
-        <p class="eyebrow mb-3">Mais amados</p>
-        <h2 class="display-md text-balance max-w-2xl mx-auto">Os clássicos que não saem do lugar — porque são essenciais.</h2>
-      </div>
-
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12 md:gap-x-6">
-        {bestSellers.map((p, i) => (
-          <div class="reveal" style={`transition-delay: ${i * 80}ms`}>
-            <ProductCard product={p} />
+          <div class="flex flex-wrap gap-3">
+            <a href="/colecoes/heritage" class="btn-gold">Coleção Heritage</a>
+            <a href="/sobre" class="btn-ghost text-bone">A nossa história</a>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="py-20 lg:py-28 bg-cream">
-    <div class="container-aurelia">
-      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
-        <div>
-          <p class="eyebrow mb-3">Coleções</p>
-          <h2 class="display-md text-balance max-w-xl">Cinco mundos. Uma só assinatura.</h2>
+  <!-- ═════════ COLEÇÕES — scroll horizontal fixo ═════════ -->
+  {collections.length > 0 && (
+    <section class="hscroll relative" style={`height: ${collections.length * 80 + 60}vh`} data-hscroll>
+      <div class="sticky top-0 h-[100svh] overflow-hidden flex flex-col justify-center">
+        <div class="container-site mb-8 flex items-end justify-between">
+          <div>
+            <p class="eyebrow mb-3">Coleções</p>
+            <h2 class="display-lg">{collections.length} mundos. <em class="text-brand">Uma assinatura.</em></h2>
+          </div>
+          <p class="hidden md:block font-display text-6xl text-taupe/50"><span data-hs-index>01</span>/{String(collections.length).padStart(2, '0')}</p>
         </div>
-        <a href="/colecoes" class="eyebrow text-cocoa link-underline">Ver todas</a>
+        <div class="flex gap-5 md:gap-8 pl-4 md:pl-10 lg:pl-14 will-change-transform" data-hs-track>
+          {collections.map((c, i) => (
+            <a href={`/colecoes/${c.slug}`} class="group relative shrink-0 w-[78vw] md:w-[46vw] lg:w-[36vw] aspect-[4/5] md:aspect-[5/6] rounded-[30px] overflow-hidden bg-cocoa" data-cursor="Abrir">
+              <img src={c.coverUrl} alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover opacity-90 transition-transform duration-[1600ms] group-hover:scale-110" style="transition-timing-function:var(--ease-silk)" />
+              <div class="absolute inset-0 bg-gradient-to-t from-night/85 via-night/20 to-transparent"></div>
+              <span class="absolute top-6 left-6 font-display text-bone/80 text-lg">0{i + 1}</span>
+              <div class="absolute inset-x-6 md:inset-x-8 bottom-6 md:bottom-8">
+                <p class="script text-gold-soft text-3xl mb-1">{c.tagline}</p>
+                <h3 class="font-display text-5xl md:text-6xl text-bone">{c.name}</h3>
+                <p class="text-bone/70 text-sm mt-3 max-w-sm hidden md:block">{c.description}</p>
+              </div>
+            </a>
+          ))}
+          <div class="shrink-0 w-[10vw]"></div>
+        </div>
       </div>
+    </section>
+  )}
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-        {Object.entries(collections).map(([key, col], i) => (
-          <a
-            href={`/colecoes/${key}`}
-            class="reveal group relative aspect-[3/4] overflow-hidden block bg-cocoa"
-            style={`transition-delay: ${i * 80}ms`}
-          >
-            <img
-              src={col.cover}
-              alt={col.name}
-              loading="lazy"
-              class="absolute inset-0 w-full h-full object-cover opacity-90 transition-all duration-[1200ms] group-hover:scale-110 group-hover:opacity-100"
-              style="transition-timing-function: var(--ease-silk);"
-            />
-            <div class="absolute inset-0 bg-gradient-to-t from-cocoa/85 via-cocoa/30 to-transparent"></div>
-            <div class="absolute bottom-0 left-0 right-0 p-6 text-bone">
-              <p class="eyebrow text-bone/80 mb-2">Coleção</p>
-              <h3 class="font-display text-3xl mb-2" style="color: #F5EFE6;">{col.name}</h3>
-              <p class="text-sm text-bone/85 italic font-display">{col.tagline}</p>
+  <!-- ═════════ PROVADOR CTA ═════════ -->
+  <section class="py-12 md:py-20">
+    <div class="container-site">
+      <div class="reveal relative overflow-hidden rounded-[36px] bg-brand text-bone grain px-6 md:px-16 py-16 md:py-24 grid lg:grid-cols-2 gap-10 items-center">
+        <div class="absolute -right-24 -top-24 w-96 h-96 rounded-full bg-gold/30 blur-3xl"></div>
+        <div class="relative">
+          <p class="eyebrow !text-gold-pale mb-5">Novo · Provador de estilo</p>
+          <h2 class="display-lg !text-bone text-balance mb-6">Três perguntas. <em class="script text-gold-pale not-italic">O par perfeito.</em></h2>
+          <p class="text-bone/80 max-w-md mb-8">Diga-nos a ocasião, a altura de salto e o seu estilo — a nossa curadoria inteligente escolhe por si.</p>
+          <a href="/provador" class="btn-gold">Começar agora · 30s</a>
+        </div>
+        <div class="relative grid grid-cols-3 gap-3" aria-hidden="true">
+          {products.slice(0, 6).map((p, i) => (
+            <div class:list={['rounded-2xl overflow-hidden aspect-[3/4] bg-cocoa', i % 2 ? 'translate-y-6' : '']}>
+              <img src={p.images[0]?.src} alt="" loading="lazy" class="w-full h-full object-cover" />
             </div>
-          </a>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="py-24 lg:py-32 relative overflow-hidden">
-    <div class="container-narrow text-center">
-      <div class="reveal">
-        <p class="eyebrow mb-6">Manifesto</p>
-        <p class="font-display text-3xl md:text-5xl lg:text-6xl leading-[1.15] text-balance text-ink italic font-light">
-          Elevando mulheres com elegância e poder.
-        </p>
-        <p class="eyebrow mt-10 text-mocha">— Santo Salto, desde 2023</p>
+  <!-- ═════════ MAIS AMADOS ═════════ -->
+  {bestSellers.length > 0 && (
+    <section class="py-20 lg:py-24">
+      <div class="container-site">
+        <div class="reveal text-center mb-14">
+          <p class="eyebrow mb-3">Mais amados</p>
+          <h2 class="display-lg text-balance max-w-3xl mx-auto">Os clássicos que não saem do lugar.</h2>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12 md:gap-x-6">
+          {bestSellers.map((p, i) => <div class="reveal" style={`transition-delay:${i * 80}ms`}><ProductCard product={p} index={i} /></div>)}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  )}
 
-  <section class="relative grid lg:grid-cols-5 min-h-[80vh] overflow-hidden">
-    <div class="relative h-[60vh] lg:h-auto lg:col-span-3">
-      <img
-        src={atelierImage}
-        alt="Santo Salto — Marca Própria"
-        loading="lazy"
-        class="absolute inset-0 w-full h-full object-cover"
-      />
-    </div>
-    <div class="relative bg-bone flex items-center px-8 md:px-16 lg:px-20 py-20 lg:col-span-2">
-      <div class="reveal">
-        <p class="eyebrow mb-5">Marca Própria</p>
-        <h2 class="display-md mb-6 text-balance">Onde nasce cada peça.</h2>
-        <p class="text-mocha leading-relaxed mb-8 text-pretty">
-          A Santo Salto tem marca própria cuidadosamente desenvolvida com design, identidade e qualidade.
-          Cada peça reflete a nossa assinatura: elegância e poder para a mulher moderna.
+  <!-- ═════════ FUNDADORAS ═════════ -->
+  <section class="py-16 lg:py-24">
+    <div class="container-site grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+      <div class="lg:col-span-5 reveal-mask rounded-[200px_200px_30px_30px] overflow-hidden aspect-[4/5]">
+        <img src="/img-1742-v2.png" alt="Fundadoras da Santo Salto na loja" loading="lazy" class="w-full h-full object-cover" />
+      </div>
+      <div class="lg:col-span-7 reveal">
+        <p class="eyebrow mb-5">Quem somos</p>
+        <p class="font-display text-3xl md:text-5xl leading-[1.15] text-ink text-balance mb-8">
+          “Desde 2023 seguimos uma missão clara: <em class="text-brand">elevar mulheres</em> com elegância, presença e confiança.”
         </p>
-        <ul class="space-y-3 mb-8 text-sm text-cocoa">
-          <li class="flex gap-3"><span class="text-gold">·</span> Marca própria com identidade exclusiva</li>
-          <li class="flex gap-3"><span class="text-gold">·</span> Multimarcas selecionadas com critério</li>
-          <li class="flex gap-3"><span class="text-gold">·</span> Qualidade e elegância em cada detalhe</li>
-          <li class="flex gap-3"><span class="text-gold">·</span> Atendimento personalizado via WhatsApp</li>
+        <p class="script text-gold-gradient text-5xl mb-10">Santo Salto</p>
+        <ul class="grid sm:grid-cols-2 gap-4 text-sm text-cocoa mb-10">
+          {['Marca própria com identidade exclusiva', 'Multimarcas selecionadas com critério', 'Qualidade e elegância em cada detalhe', 'Consultoria personalizada via WhatsApp'].map((t) => (
+            <li class="flex gap-3 items-start"><span class="text-gold mt-0.5">✦</span>{t}</li>
+          ))}
         </ul>
         <a href="/sobre" class="btn-primary">Conheça a marca</a>
       </div>
     </div>
   </section>
 
-  <section class="py-20 lg:py-28">
-    <div class="container-aurelia">
-      <div class="reveal flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
-        <div>
-          <p class="eyebrow mb-3">Heritage</p>
-          <h2 class="display-md text-balance max-w-xl">Peças trançadas à mão. Edição limitada.</h2>
-        </div>
-        <a href="/colecoes/heritage" class="eyebrow text-cocoa link-underline">Ver coleção completa</a>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-12 md:gap-x-6">
-        {heritagePieces.map((p, i) => (
-          <div class="reveal" style={`transition-delay: ${i * 100}ms`}>
-            <ProductCard product={p} />
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <section class="py-20 lg:py-28 bg-cocoa text-bone">
-    <div class="container-aurelia">
-      <p class="eyebrow text-gold-soft text-center mb-12">Quem usa, fica</p>
-      <div class="grid md:grid-cols-3 gap-10 lg:gap-16">
+  <!-- ═════════ DEPOIMENTOS ═════════ -->
+  <section class="py-20 lg:py-28 bg-ink text-bone relative overflow-hidden">
+    <p class="script absolute -top-10 left-1/2 -translate-x-1/2 text-[18rem] text-gold/5 leading-none pointer-events-none select-none" aria-hidden="true">“</p>
+    <div class="container-site relative">
+      <p class="eyebrow !text-gold text-center mb-14">Quem usa, fica</p>
+      <div class="grid md:grid-cols-3 gap-6">
         {testimonials.map((t, i) => (
-          <blockquote class="reveal" style={`transition-delay: ${i * 100}ms`}>
-            <p class="font-display text-2xl md:text-[1.7rem] leading-snug text-balance mb-6" style="color: #F5EFE6;">
-              {t.quote}
-            </p>
-            <footer class="eyebrow text-gold-soft">
-              {t.author} <span class="text-bone/50">· {t.city}</span>
-            </footer>
+          <blockquote class="reveal glass-dark rounded-[28px] p-8 md:p-10" style={`transition-delay:${i * 100}ms`}>
+            <p class="text-gold mb-5 tracking-[0.3em]">★★★★★</p>
+            <p class="font-display text-2xl leading-snug !text-bone mb-8">{t.quote}</p>
+            <footer class="text-[11px] uppercase tracking-[0.25em] text-gold-soft">{t.author} <span class="text-bone/40">· {t.city}</span></footer>
           </blockquote>
         ))}
       </div>
     </div>
   </section>
 
-  <section class="py-16 border-t border-taupe/20">
-    <div class="container-aurelia grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 text-center">
+  <!-- ═════════ VANTAGENS ═════════ -->
+  <section class="py-14 border-b border-taupe/20">
+    <div class="container-site grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
       {[
-        { t: 'Frete grátis', s: 'A partir de R$ 499' },
-        { t: 'Parcelamento', s: 'Até 6x sem juros' },
-        { t: 'Trocas grátis', s: '30 dias para trocar' },
-        { t: 'Reparos vitalícios', s: 'Cuidamos do seu par' },
+        { t: 'Frete grátis', s: `Acima de ${formatBRL(settings.freeShippingThreshold)}` },
+        { t: `Pix −${settings.pixDiscountPercent}%`, s: 'Desconto imediato' },
+        { t: 'Até 6x', s: 'Cartão via Stripe' },
+        { t: 'Troca grátis', s: '30 dias para trocar' },
       ].map((b) => (
-        <div>
-          <p class="font-display text-xl md:text-2xl text-ink mb-1">{b.t}</p>
-          <p class="text-xs text-mocha uppercase tracking-[0.18em]">{b.s}</p>
-        </div>
+        <div><p class="font-display text-2xl md:text-3xl text-ink mb-1">{b.t}</p><p class="text-[11px] text-mocha uppercase tracking-[0.18em]">{b.s}</p></div>
       ))}
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  .hero-arch { border-radius: 999px 999px 32px 32px; }
+  .hero-blob { left: var(--bx, 60%); top: var(--by, 30%); transform: translate(-50%, -50%); transition: left 1.2s var(--ease-silk), top 1.2s var(--ease-silk); }
+  .text-outline { color: transparent; -webkit-text-stroke: 1px var(--color-brand); }
+  .rail-btn { width: 52px; height: 52px; border-radius: 999px; border: 1px solid rgba(61, 6, 4, .25); display: grid; place-items: center; transition: all .4s var(--ease-silk); }
+  .rail-btn:hover { background: var(--color-ink); color: var(--color-bone); }
+  .rail { scroll-behavior: smooth; cursor: grab; }
+  .rail.is-dragging { cursor: grabbing; scroll-behavior: auto; scroll-snap-type: none; }
+  @media (max-width: 767px) { .hscroll { height: auto !important; } .hscroll > div { position: relative; height: auto; padding: 5rem 0; } [data-hs-track] { overflow-x: auto; scroll-snap-type: x mandatory; } [data-hs-track] > a { scroll-snap-align: start; } }
+</style>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const hero = document.querySelector<HTMLElement>('[data-hero]');
+    if (!hero) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    hero.addEventListener('pointermove', (e) => {
+      const r = hero.getBoundingClientRect();
+      hero.style.setProperty('--bx', `${((e.clientX - r.left) / r.width) * 100}%`);
+      hero.style.setProperty('--by', `${((e.clientY - r.top) / r.height) * 100}%`);
+    });
+
+    // Contadores animados
+    const io = new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        if (!en.isIntersecting) continue;
+        const el = en.target as HTMLElement;
+        const target = Number(el.dataset.count);
+        const t0 = performance.now();
+        const step = (t: number): void => {
+          const p = Math.min(1, (t - t0) / 1600);
+          const eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(target * eased).toLocaleString('pt-BR') + (target >= 1000 && p === 1 ? '+' : '');
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+        io.unobserve(el);
+      }
+    }, { threshold: 0.6 });
+    document.querySelectorAll('[data-count]').forEach((el) => io.observe(el));
+
+    // Rail: botões, arrastar, progresso
+    const rail = document.querySelector<HTMLElement>('[data-rail]');
+    const prog = document.querySelector<HTMLElement>('[data-rail-progress]');
+    if (rail) {
+      const by = (): number => rail.clientWidth * 0.8;
+      document.querySelector('[data-rail-prev]')?.addEventListener('click', () => rail.scrollBy({ left: -by() }));
+      document.querySelector('[data-rail-next]')?.addEventListener('click', () => rail.scrollBy({ left: by() }));
+      const upd = (): void => { if (prog) prog.style.width = `${Math.max(12, ((rail.scrollLeft + rail.clientWidth) / rail.scrollWidth) * 100)}%`; };
+      rail.addEventListener('scroll', upd, { passive: true });
+      upd();
+      let down = false, sx = 0, sl = 0, moved = false;
+      rail.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') return; down = true; moved = false; sx = e.clientX; sl = rail.scrollLeft; });
+      window.addEventListener('pointermove', (e) => { if (!down) return; const dx = e.clientX - sx; if (Math.abs(dx) > 5) { moved = true; rail.classList.add('is-dragging'); } rail.scrollLeft = sl - dx; });
+      window.addEventListener('pointerup', () => { down = false; rail.classList.remove('is-dragging'); });
+      rail.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+    }
+
+    // Parallax + scroll horizontal fixo
+    const parallax = Array.from(document.querySelectorAll<HTMLElement>('[data-parallax]'));
+    const hs = document.querySelector<HTMLElement>('[data-hscroll]');
+    const track = hs?.querySelector<HTMLElement>('[data-hs-track]');
+    const idx = hs?.querySelector<HTMLElement>('[data-hs-index]');
+    let ticking = false;
+    const onScroll = (): void => {
+      ticking = false;
+      const vh = window.innerHeight;
+      if (!reduced) {
+        for (const el of parallax) {
+          const r = el.getBoundingClientRect();
+          if (r.bottom < 0 || r.top > vh) continue;
+          const f = Number(el.dataset.parallax);
+          el.style.transform = `translate3d(0, ${(r.top + r.height / 2 - vh / 2) * f}px, 0)`;
+        }
+      }
+      if (hs && track && window.innerWidth >= 768) {
+        const r = hs.getBoundingClientRect();
+        const total = hs.offsetHeight - vh;
+        const p = Math.min(1, Math.max(0, -r.top / total));
+        const max = track.scrollWidth - window.innerWidth;
+        track.style.transform = `translate3d(${-p * max}px, 0, 0)`;
+        if (idx) idx.textContent = String(Math.min(track.children.length - 1, Math.floor(p * (track.children.length - 1)) + 1)).padStart(2, '0');
+      }
+    };
+    const req = (): void => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } };
+    window.addEventListener('scroll', req, { passive: true });
+    window.addEventListener('resize', req);
+    document.addEventListener('astro:before-swap', () => { window.removeEventListener('scroll', req); window.removeEventListener('resize', req); }, { once: true });
+    onScroll();
+  });
+</script>

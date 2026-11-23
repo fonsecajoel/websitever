@@ -1,198 +1,138 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ProductCard from '../../components/ProductCard.astro';
-import { formatBRL } from '../../data/products';
-import { getProductsFromDB } from '../../lib/db';
+import { getCategories, getProductBySlug, getProducts, getSettings } from '../../lib/server/catalog';
+import { formatBRL, installments } from '../../lib/pricing';
+import { BADGE_LABEL } from '../../lib/types';
 
-const { slug } = Astro.params;
-const allProducts = await getProductsFromDB();
-const product = allProducts.find(p => p.slug === slug);
+const { slug = '' } = Astro.params;
+const product = await getProductBySlug(slug);
+if (!product) return Astro.rewrite('/404');
 
-if (!product) {
-  return Astro.redirect('/404');
-}
+const [all, categories, settings] = await Promise.all([getProducts(), getCategories(), getSettings()]);
+const related = all.filter((p) => p.id !== product.id && (p.category === product.category || p.collection === product.collection)).slice(0, 4);
+const categoryLabel = categories.find((c) => c.slug === product.category)?.label ?? product.category;
+const hasDiscount = product.oldPrice !== null && product.oldPrice > product.price;
+const pixPrice = product.price * (1 - settings.pixDiscountPercent / 100);
+const heelCm = product.heelHeight ? parseFloat(product.heelHeight) : null;
+const cartPayload = { productId: product.id, slug: product.slug, name: product.name, price: product.price, image: product.images[0]?.src ?? '' };
+const waText = encodeURIComponent(`Olá! Tenho uma dúvida sobre o ${product.name} (${Astro.url.href})`);
 
-const related = allProducts
-  .filter(p => p.id !== product.id && (p.category === product.category || p.collection === product.collection))
-  .slice(0, 4);
-const hasDiscount = product.oldPrice && product.oldPrice > product.price;
-const installment = (product.price / 6).toFixed(2).replace('.', ',');
+const jsonLd = {
+  '@context': 'https://schema.org', '@type': 'Product', name: product.name, description: product.shortDescription,
+  image: product.images.map((i) => i.src), brand: { '@type': 'Brand', name: 'Santo Salto' },
+  offers: { '@type': 'Offer', priceCurrency: 'BRL', price: product.price, availability: product.sizes.some((s) => s.stock > 0) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' },
+};
 ---
 
-<BaseLayout
-  title={`${product.name} — AURÉLIA`}
-  description={product.shortDescription}
-  image={product.images[0].src}
->
-  <div class="container-aurelia pt-6 pb-2">
-    <nav class="text-xs text-mocha flex items-center gap-2">
-      <a href="/" class="link-underline">Início</a>
-      <span>·</span>
-      <a href={`/colecao/${product.category}`} class="link-underline capitalize">{product.category}</a>
-      <span>·</span>
-      <span class="text-cocoa">{product.name}</span>
+<BaseLayout title={product.name} description={product.shortDescription} image={product.images[0]?.src}>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <div class="container-site pt-6">
+    <nav class="text-[11px] uppercase tracking-[0.18em] text-mocha flex flex-wrap items-center gap-2" aria-label="Breadcrumb">
+      <a href="/" class="link-underline">Início</a><span class="text-gold">/</span>
+      <a href={`/colecao/${product.category}`} class="link-underline">{categoryLabel}</a><span class="text-gold">/</span>
+      <span class="text-ink">{product.name}</span>
     </nav>
   </div>
 
-  <section class="container-aurelia py-8 lg:py-12">
+  <section class="container-site py-8 lg:py-12">
     <div class="grid lg:grid-cols-12 gap-10 lg:gap-16">
+      <!-- Galeria -->
       <div class="lg:col-span-7">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="lg:hidden -mx-4 flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2 px-4" data-mobile-gallery>
           {product.images.map((img, i) => (
-            <div
-              class={`relative bg-cream overflow-hidden ${i === 0 ? 'md:col-span-2 aspect-[4/5]' : 'aspect-square'} cursor-zoom-in group`}
-              data-gallery-item={i}
-            >
-              <img
-                src={img.src}
-                alt={img.alt}
-                loading={i === 0 ? 'eager' : 'lazy'}
-                fetchpriority={i === 0 ? 'high' : 'auto'}
-                class="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-110"
-                style="transition-timing-function: var(--ease-silk);"
-              />
-            </div>
+            <img src={img.src} alt={img.alt} class="snap-center shrink-0 w-[88vw] aspect-[4/5] object-cover rounded-[24px] bg-cream" loading={i === 0 ? 'eager' : 'lazy'} transition:name={i === 0 ? `product-${product.slug}` : undefined} />
+          ))}
+        </div>
+        <div class="hidden lg:grid grid-cols-2 gap-3">
+          {product.images.map((img, i) => (
+            <button type="button" class:list={['zoom relative overflow-hidden rounded-[24px] bg-cream cursor-zoom-in', i === 0 ? 'col-span-2 aspect-[5/5]' : 'aspect-[4/5]']} data-zoom={i} data-cursor="Zoom">
+              <img src={img.src} alt={img.alt} loading={i === 0 ? 'eager' : 'lazy'} class="absolute inset-0 w-full h-full object-cover transition-transform duration-300" transition:name={i === 0 ? `product-${product.slug}` : undefined} />
+            </button>
           ))}
         </div>
       </div>
 
-      <div class="lg:col-span-5 lg:sticky lg:top-32 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-2">
-        <div class="space-y-7">
-          <div>
-            {product.badges && product.badges.length > 0 && (
-              <p class="eyebrow text-mocha mb-3">{product.badges.map((b) => b.replace('-', ' ')).join(' · ')}</p>
-            )}
-            <h1 class="font-display text-4xl md:text-5xl text-ink leading-tight mb-4">{product.name}</h1>
-            <p class="text-mocha leading-relaxed text-pretty">{product.shortDescription}</p>
-          </div>
+      <!-- Info -->
+      <div class="lg:col-span-5 lg:sticky lg:top-28 lg:self-start">
+        <div class="flex flex-wrap gap-2 mb-5">
+          {product.badges.map((b) => <span class:list={['chip', b === 'best-seller' ? 'bg-gold text-night' : 'bg-ink text-bone']}>{BADGE_LABEL[b]}</span>)}
+          {hasDiscount && <span class="chip bg-brand text-bone">Promoção</span>}
+        </div>
+        <h1 class="display-lg mb-3">{product.name}</h1>
+        <p class="text-mocha mb-6 text-pretty">{product.shortDescription}</p>
 
-          <div class="border-t border-taupe/30 pt-6">
-            <div class="flex items-baseline gap-3 mb-2">
-              <span class="font-display text-3xl text-ink">{formatBRL(product.price)}</span>
-              {hasDiscount && (
-                <span class="text-base text-mocha/70 line-through">{formatBRL(product.oldPrice!)}</span>
-              )}
-            </div>
-            <p class="text-xs text-mocha">ou 6x de R$ {installment} sem juros</p>
-          </div>
+        <div class="flex items-baseline gap-3 mb-1">
+          <span class="font-display text-4xl text-ink">{formatBRL(product.price)}</span>
+          {hasDiscount && product.oldPrice && <span class="text-taupe line-through">{formatBRL(product.oldPrice)}</span>}
+        </div>
+        <p class="text-sm text-mocha">{installments(product.price)} · <strong class="text-brand">{formatBRL(pixPrice)} no Pix</strong></p>
 
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <p class="eyebrow text-cocoa">Cor</p>
-              <p id="color-name" class="text-xs text-mocha">{product.colors[0].name}</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              {product.colors.map((c, i) => (
-                <button
-                  type="button"
-                  data-color={c.name}
-                  data-i={i}
-                  class={`relative w-10 h-10 rounded-full border-2 transition-all duration-300 color-swatch ${
-                    i === 0 ? 'border-cocoa' : 'border-taupe/40 hover:border-mocha'
-                  }`}
-                  aria-label={c.name}
-                >
-                  <span class="absolute inset-1 rounded-full" style={`background-color: ${c.hex}`}></span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <p class="eyebrow text-cocoa">Tamanho</p>
-              <a href="/tamanhos" class="text-xs text-mocha link-underline">Guia de tamanhos</a>
-            </div>
-            <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
-              {product.sizes.map((s) => (
-                <button
-                  type="button"
-                  data-size={s.label}
-                  disabled={!s.available}
-                  class={`size-btn h-12 border text-sm transition-all duration-300 ${
-                    s.available
-                      ? 'border-taupe/40 text-cocoa hover:border-cocoa hover:bg-cream'
-                      : 'border-taupe/20 text-taupe/50 line-through cursor-not-allowed bg-cream/50'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-            <p id="size-error" class="text-xs text-rose-700 mt-2 hidden">Por favor selecione um tamanho.</p>
-          </div>
-
-          <div class="space-y-3">
-            <button
-              id="add-to-cart"
-              data-product-id={product.id}
-              data-slug={product.slug}
-              data-name={product.name}
-              data-price={product.price}
-              data-image={product.images[0].src}
-              class="btn-primary w-full !py-5"
-            >
-              Adicionar à sacola
-            </button>
-            <button class="btn-ghost w-full !py-5 inline-flex items-center justify-center gap-3">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-              </svg>
-              Adicionar à lista de desejos
-            </button>
-          </div>
-
-          <div class="border-t border-taupe/30 pt-6 grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p class="text-xs text-mocha mb-0.5">Entrega</p>
-              <p class="text-xs text-cocoa font-medium">3-7 dias</p>
-            </div>
-            <div class="border-x border-taupe/30">
-              <p class="text-xs text-mocha mb-0.5">Trocas</p>
-              <p class="text-xs text-cocoa font-medium">Grátis 30 dias</p>
-            </div>
-            <div>
-              <p class="text-xs text-mocha mb-0.5">Garantia</p>
-              <p class="text-xs text-cocoa font-medium">Reparo vitalício</p>
-            </div>
-          </div>
-
-          <details class="group border-t border-taupe/30 pt-5" open>
-            <summary class="flex items-center justify-between cursor-pointer eyebrow text-cocoa list-none">
-              Descrição
-              <span class="text-xl transition-transform group-open:rotate-45">+</span>
-            </summary>
-            <p class="mt-4 text-sm text-mocha leading-relaxed text-pretty">{product.description}</p>
-          </details>
-
-          <details class="group border-t border-taupe/30 pt-5">
-            <summary class="flex items-center justify-between cursor-pointer eyebrow text-cocoa list-none">
-              Detalhes & materiais
-              <span class="text-xl transition-transform group-open:rotate-45">+</span>
-            </summary>
-            <div class="mt-4 space-y-2 text-sm text-mocha">
-              <ul class="space-y-1.5">
-                {product.details.map((d) => (
-                  <li class="flex gap-2"><span class="text-gold">·</span> {d}</li>
+        <form id="buy-form" class="mt-8 space-y-7" data-product={JSON.stringify(cartPayload)}>
+          {product.colors.length > 0 && (
+            <fieldset>
+              <legend class="eyebrow mb-3">Cor · <span data-color-label class="text-ink normal-case tracking-normal">{product.colors[0]?.name}</span></legend>
+              <div class="flex gap-3">
+                {product.colors.map((c, i) => (
+                  <label class="relative cursor-pointer">
+                    <input type="radio" name="color" value={c.name} checked={i === 0} class="peer sr-only" />
+                    <span class="block w-10 h-10 rounded-full ring-1 ring-taupe/40 peer-checked:ring-2 peer-checked:ring-brand peer-checked:ring-offset-2 ring-offset-bone transition" style={`background:${c.hex}`} title={c.name}></span>
+                  </label>
                 ))}
-              </ul>
-              <div class="pt-3 grid grid-cols-2 gap-2 text-xs border-t border-taupe/20 mt-3">
-                <div><span class="text-cocoa">Materiais:</span><br/>{product.materials}</div>
-                <div><span class="text-cocoa">Origem:</span><br/>{product.origin}</div>
-                {product.heelHeight && <div><span class="text-cocoa">Altura do salto:</span><br/>{product.heelHeight}</div>}
               </div>
-            </div>
-          </details>
+            </fieldset>
+          )}
 
-          <details class="group border-t border-b border-taupe/30 py-5">
-            <summary class="flex items-center justify-between cursor-pointer eyebrow text-cocoa list-none">
-              Envio & devoluções
-              <span class="text-xl transition-transform group-open:rotate-45">+</span>
-            </summary>
-            <div class="mt-4 text-sm text-mocha space-y-2">
-              <p>Frete grátis em compras acima de R$ 499. Envio para todo o Brasil em 3 a 7 dias úteis.</p>
-              <p>Trocas e devoluções gratuitas em até 30 dias após receber a peça.</p>
+          <fieldset>
+            <div class="flex justify-between items-center mb-3">
+              <legend class="eyebrow">Tamanho</legend>
+              <button type="button" class="text-[11px] uppercase tracking-[0.18em] text-mocha link-underline" data-open-size-guide>Descubra o seu número</button>
             </div>
+            <div class="grid grid-cols-5 sm:grid-cols-6 gap-2">
+              {product.sizes.map((s) => (
+                <label class:list={['relative', { 'pointer-events-none': s.stock === 0 }]}>
+                  <input type="radio" name="size" value={s.label} disabled={s.stock === 0} class="peer sr-only" data-stock={s.stock} />
+                  <span class="h-12 grid place-items-center rounded-2xl border border-taupe/40 text-sm cursor-pointer transition peer-checked:bg-ink peer-checked:text-bone peer-checked:border-ink hover:border-ink peer-disabled:opacity-35 peer-disabled:line-through">{s.label}</span>
+                </label>
+              ))}
+            </div>
+            <p data-stock-msg class="text-xs text-brand mt-2 min-h-4" aria-live="polite"></p>
+          </fieldset>
+
+          {heelCm !== null && (
+            <div class="rounded-2xl bg-cream p-4 flex items-center gap-5">
+              <div class="relative w-full h-2 rounded-full bg-sand">
+                <span class="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-rose to-brand" style={`width:${Math.min(100, (heelCm / 12) * 100)}%`}></span>
+                <span class="absolute -top-5 text-[10px] text-mocha" style={`left:calc(${Math.min(100, (heelCm / 12) * 100)}% - 12px)`}>{product.heelHeight}</span>
+              </div>
+              <p class="text-[10px] uppercase tracking-[0.18em] text-mocha whitespace-nowrap">{heelCm <= 4 ? 'Conforto total' : heelCm <= 7 ? 'Médio, dia todo' : 'Alto, poder'}</p>
+            </div>
+          )}
+
+          <div class="flex gap-3">
+            <button type="submit" class="btn-primary flex-1" data-add-btn>Adicionar à sacola</button>
+            <button type="button" class="wish-btn w-[58px] rounded-full border border-taupe/40 grid place-items-center text-ink hover:text-brand transition" data-wish={product.slug} aria-pressed="false" aria-label="Favoritos">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 00-7.8 7.8L12 21.2l8.8-8.8a5.5 5.5 0 000-7.8z"/></svg>
+            </button>
+          </div>
+          <a href={`https://wa.me/${settings.whatsapp}?text=${waText}`} target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.2em] text-mocha hover:text-brand transition">✦ Dúvidas? Fale com uma consultora</a>
+        </form>
+
+        <div class="mt-10 divide-y divide-taupe/25 border-y border-taupe/25">
+          <details class="group py-5" open>
+            <summary class="flex justify-between cursor-pointer list-none eyebrow !text-ink">Descrição <span class="group-open:rotate-45 transition">+</span></summary>
+            <p class="mt-4 text-mocha leading-relaxed text-pretty">{product.description}</p>
+          </details>
+          <details class="group py-5">
+            <summary class="flex justify-between cursor-pointer list-none eyebrow !text-ink">Detalhes & materiais <span class="group-open:rotate-45 transition">+</span></summary>
+            <ul class="mt-4 space-y-2 text-mocha text-sm">{product.details.map((d) => <li class="flex gap-3"><span class="text-gold">✦</span>{d}</li>)}</ul>
+            <p class="mt-4 text-sm text-mocha"><strong class="text-ink">Materiais:</strong> {product.materials}</p>
+            <p class="text-sm text-mocha"><strong class="text-ink">Origem:</strong> {product.origin}</p>
+          </details>
+          <details class="group py-5">
+            <summary class="flex justify-between cursor-pointer list-none eyebrow !text-ink">Envio, trocas & pagamento <span class="group-open:rotate-45 transition">+</span></summary>
+            <p class="mt-4 text-sm text-mocha leading-relaxed">Frete grátis acima de {formatBRL(settings.freeShippingThreshold)}. Troca grátis em 30 dias. Pague com Pix ({settings.pixDiscountPercent}% off) ou cartão via Stripe em até 6x sem juros.</p>
           </details>
         </div>
       </div>
@@ -200,78 +140,95 @@ const installment = (product.price / 6).toFixed(2).replace('.', ',');
   </section>
 
   {related.length > 0 && (
-    <section class="py-20 lg:py-28 bg-cream">
-      <div class="container-aurelia">
-        <p class="eyebrow text-center mb-3">Você também vai amar</p>
-        <h2 class="display-md text-center mb-12">Combinações que conversam.</h2>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-12 md:gap-x-6">
-          {related.map((p) => <ProductCard product={p} />)}
+    <section class="py-16 lg:py-24 bg-cream">
+      <div class="container-site">
+        <h2 class="display-md mb-10">Combina com <em class="text-brand">você.</em></h2>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-6">
+          {related.map((p, i) => <ProductCard product={p} index={i} />)}
         </div>
       </div>
     </section>
   )}
 
-  <div
-    id="atc-toast"
-    class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-cocoa text-bone px-6 py-4 shadow-lift opacity-0 translate-y-4 pointer-events-none transition-all duration-500 z-30 text-sm"
-    style="transition-timing-function: var(--ease-silk);"
-  >
-    Adicionado à sua sacola ✓
+  <!-- Sticky mobile -->
+  <div class="lg:hidden fixed inset-x-0 bottom-0 z-30 glass px-4 py-3 flex items-center gap-3 translate-y-full transition-transform duration-500" data-sticky-buy>
+    <div class="flex-1 min-w-0"><p class="font-display text-lg text-ink truncate">{product.name}</p><p class="text-xs text-mocha">{formatBRL(product.price)}</p></div>
+    <button class="btn-primary !py-3" data-scroll-buy>Comprar</button>
   </div>
 
-  <script>
-    import { addToCart } from '../../stores/cart';
+  <!-- Guia de tamanhos -->
+  <dialog id="size-guide" class="m-auto rounded-[28px] p-0 backdrop:bg-night/60 w-[min(520px,calc(100%-2rem))] bg-bone">
+    <form method="dialog" class="p-8">
+      <div class="flex justify-between items-start mb-6"><h3 class="display-md">Descubra o seu número</h3><button class="text-2xl text-mocha" aria-label="Fechar">×</button></div>
+      <p class="text-sm text-mocha mb-6">Meça o pé do calcanhar à ponta do dedo maior, em centímetros.</p>
+      <label class="field mb-4"><span>Comprimento do pé (cm)</span><input type="range" min="21" max="27" step="0.1" value="23.5" data-foot /></label>
+      <p class="text-center"><span class="font-display text-6xl text-brand" data-foot-size>36</span><span class="block text-xs text-mocha mt-1" data-foot-cm>23,5 cm</span></p>
+      <table class="w-full mt-6 text-sm text-center"><thead class="text-[10px] uppercase tracking-[0.18em] text-mocha"><tr><th class="py-2">BR</th><th>EU</th><th>cm</th></tr></thead>
+        <tbody class="divide-y divide-taupe/20">{[[33, 34, 21.6], [34, 35, 22.3], [35, 36, 23], [36, 37, 23.6], [37, 38, 24.3], [38, 39, 25], [39, 40, 25.6], [40, 41, 26.3]].map(([br, eu, cm]) => <tr><td class="py-2">{br}</td><td>{eu}</td><td>{cm}</td></tr>)}</tbody>
+      </table>
+    </form>
+  </dialog>
+</BaseLayout>
 
-    let selectedColor: string | null = null;
-    let selectedSize: string | null = null;
+<script>
+  import { addToCart, type CartItem } from '../../stores/cart';
+  import { toast } from '../../scripts/ui';
 
-    document.querySelectorAll<HTMLButtonElement>('.color-swatch').forEach((btn, i) => {
-      if (i === 0) selectedColor = btn.dataset.color!;
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.color-swatch').forEach((b) => {
-          b.classList.remove('border-cocoa');
-          b.classList.add('border-taupe/40');
-        });
-        btn.classList.add('border-cocoa');
-        btn.classList.remove('border-taupe/40');
-        selectedColor = btn.dataset.color!;
-        const nameEl = document.getElementById('color-name');
-        if (nameEl) nameEl.textContent = selectedColor;
-      });
+  document.addEventListener('astro:page-load', () => {
+    const form = document.getElementById('buy-form') as HTMLFormElement | null;
+    if (!form?.dataset.product) return;
+    const base = JSON.parse(form.dataset.product) as Omit<CartItem, 'id' | 'quantity' | 'size' | 'color'>;
+    const stockMsg = form.querySelector('[data-stock-msg]');
+
+    form.addEventListener('change', (e) => {
+      const t = e.target as HTMLInputElement;
+      if (t.name === 'color') { const l = form.querySelector('[data-color-label]'); if (l) l.textContent = t.value; }
+      if (t.name === 'size' && stockMsg) { const n = Number(t.dataset.stock); stockMsg.textContent = n <= 2 ? `Restam só ${n} no ${t.value} — garanta já.` : ''; }
     });
 
-    document.querySelectorAll<HTMLButtonElement>('.size-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        if (btn.disabled) return;
-        document.querySelectorAll('.size-btn').forEach((b) => {
-          b.classList.remove('border-cocoa', 'bg-cream', 'text-ink');
-        });
-        btn.classList.add('border-cocoa', 'bg-cream', 'text-ink');
-        selectedSize = btn.dataset.size!;
-        document.getElementById('size-error')?.classList.add('hidden');
-      });
-    });
-
-    document.getElementById('add-to-cart')?.addEventListener('click', (e) => {
-      const btn = e.currentTarget as HTMLButtonElement;
-      if (!selectedSize) {
-        document.getElementById('size-error')?.classList.remove('hidden');
-        document.getElementById('size-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const size = fd.get('size');
+      if (typeof size !== 'string') {
+        toast('Escolha o seu tamanho ✦');
+        form.querySelector('fieldset:nth-of-type(2)')?.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 320 });
         return;
       }
-      addToCart({
-        productId: btn.dataset.productId!,
-        slug: btn.dataset.slug!,
-        name: btn.dataset.name!,
-        price: parseFloat(btn.dataset.price!),
-        image: btn.dataset.image!,
-        size: selectedSize,
-        color: selectedColor || '—',
-        quantity: 1,
-      });
-      const toast = document.getElementById('atc-toast');
-      toast?.classList.remove('opacity-0', 'translate-y-4');
-      setTimeout(() => toast?.classList.add('opacity-0', 'translate-y-4'), 2200);
+      const color = (fd.get('color') as string | null) ?? 'Único';
+      addToCart({ ...base, size, color, quantity: 1 });
     });
-  </script>
-</BaseLayout>
+
+    // Zoom com lupa
+    document.querySelectorAll<HTMLElement>('[data-zoom]').forEach((el) => {
+      const img = el.querySelector('img');
+      if (!img) return;
+      el.addEventListener('pointermove', (e) => {
+        const r = el.getBoundingClientRect();
+        img.style.transformOrigin = `${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`;
+        img.style.transform = 'scale(1.9)';
+      });
+      el.addEventListener('pointerleave', () => { img.style.transform = ''; });
+    });
+
+    // Guia de tamanhos
+    const dlg = document.getElementById('size-guide') as HTMLDialogElement | null;
+    document.querySelector('[data-open-size-guide]')?.addEventListener('click', () => dlg?.showModal());
+    const foot = dlg?.querySelector<HTMLInputElement>('[data-foot]');
+    const table: [number, number][] = [[33, 21.6], [34, 22.3], [35, 23], [36, 23.6], [37, 24.3], [38, 25], [39, 25.6], [40, 26.3]];
+    foot?.addEventListener('input', () => {
+      const cm = Number(foot.value);
+      const best = table.find(([, c]) => c >= cm) ?? table[table.length - 1];
+      dlg!.querySelector('[data-foot-size]')!.textContent = String(best[0]);
+      dlg!.querySelector('[data-foot-cm]')!.textContent = `${cm.toFixed(1).replace('.', ',')} cm`;
+    });
+
+    // Barra fixa mobile
+    const sticky = document.querySelector<HTMLElement>('[data-sticky-buy]');
+    const addBtn = form.querySelector('[data-add-btn]');
+    if (sticky && addBtn) {
+      new IntersectionObserver(([en]) => sticky.classList.toggle('translate-y-full', en.isIntersecting || en.boundingClientRect.top > 0)).observe(addBtn);
+      sticky.querySelector('[data-scroll-buy]')?.addEventListener('click', () => form.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    }
+  });
+</script>

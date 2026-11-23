@@ -1,64 +1,90 @@
 ---
-import { validateCredentials, createSessionToken } from '../../lib/auth';
+import { loginIdentifierToEmail } from '../../lib/server/auth';
+import '../../styles/admin.css';
+import { isSupabaseConfigured } from '../../lib/env';
+import { supabaseForRequest } from '../../lib/server/supabase';
+import { str } from '../../lib/server/admin/helpers';
 
+const configured = isSupabaseConfigured();
+const rawNext = Astro.url.searchParams.get('next') ?? '/admin';
+const next = rawNext.startsWith('/admin') && !rawNext.startsWith('//') ? rawNext : '/admin';
 let error = '';
+let emailValue = '';
 
-if (Astro.request.method === 'POST') {
-  const form = await Astro.request.formData();
-  const email = form.get('email') as string;
-  const password = form.get('password') as string;
+if (configured && Astro.locals.isAdmin) return Astro.redirect(next);
 
-  if (validateCredentials(email, password)) {
-    const token = createSessionToken();
-    return new Response(null, {
-      status: 302,
-      headers: {
-        'Location': '/admin',
-        'Set-Cookie': `admin_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`,
-      },
-    });
+if (configured && Astro.request.method === 'POST') {
+  const fd = await Astro.request.formData();
+  emailValue = str(fd, 'email');
+  const password = str(fd, 'password');
+  const sb = supabaseForRequest(Astro.request, Astro.cookies);
+  // Aceita nome de utilizador (ex.: "admin") além de e-mail
+  const loginEmail = loginIdentifierToEmail(emailValue);
+  const { data, error: authErr } = await sb.auth.signInWithPassword({ email: loginEmail, password });
+  if (authErr || !data.user) {
+    error = 'E-mail ou palavra-passe incorretos.';
   } else {
-    error = 'Email ou password incorretos.';
+    const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).maybeSingle();
+    if (profile?.role === 'admin') return Astro.redirect(next);
+    await sb.auth.signOut();
+    error = 'Esta conta não tem permissões de administração.';
   }
 }
 ---
-
 <!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Login | Santo Salto</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .login-card { background: #fff; padding: 2.5rem; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-    .login-card h1 { font-size: 1.3rem; margin-bottom: 0.5rem; }
-    .login-card p { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; margin-bottom: 0.3rem; font-weight: 500; font-size: 0.85rem; }
-    .form-group input { width: 100%; padding: 0.65rem 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; }
-    .btn { width: 100%; padding: 0.75rem; background: #1a1a1a; color: #fff; border: none; border-radius: 6px; font-size: 0.95rem; cursor: pointer; font-weight: 500; }
-    .btn:hover { background: #333; }
-    .error { background: #fef2f2; color: #dc2626; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; }
-  </style>
-</head>
-<body>
-  <div class="login-card">
-    <h1>🏪 Santo Salto</h1>
-    <p>Painel de Administração</p>
-    {error && <div class="error">{error}</div>}
-    <form method="POST">
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" required />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <title>Entrar · Gestão Santo Salto</title>
+  </head>
+  <body class="admin min-h-screen grid lg:grid-cols-2">
+    <section class="relative hidden lg:flex flex-col justify-between p-14 overflow-hidden"
+      style="background: radial-gradient(120% 80% at 0% 0%, #C0392B 0%, #6B0E09 45%, #250302 100%);">
+      <img src="/img-1757-v2.png" alt="" class="absolute inset-0 w-full h-full object-cover opacity-25 mix-blend-luminosity" />
+      <img src="/logo-navbar.png" alt="Santo Salto" class="relative h-14 w-max object-contain brightness-0 invert" />
+      <div class="relative">
+        <p class="a-eyebrow mb-4" style="color:#E2BC44">Atelier digital</p>
+        <p class="font-display text-5xl leading-[1.05] text-bone italic">Cada par,<br />cada encomenda,<br />num só lugar.</p>
       </div>
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" required />
+      <p class="relative text-xs text-white/50">© Santo Salto Store · Área restrita</p>
+    </section>
+
+    <section class="flex items-center justify-center p-6 sm:p-12">
+      <div class="w-full max-w-sm">
+        <img src="/logo-navbar.png" alt="Santo Salto" class="h-12 object-contain mb-10 lg:hidden" />
+        <p class="a-eyebrow mb-2">Gestão</p>
+        <h1 class="text-4xl mb-8">Bem-vinda de volta.</h1>
+
+        {!configured ? (
+          <div class="a-flash a-flash-err space-y-2">
+            <p><strong>Supabase ainda não está configurado.</strong></p>
+            <p>Copie <code>.env.example</code> para <code>.env</code> e preencha <code>PUBLIC_SUPABASE_URL</code>, <code>PUBLIC_SUPABASE_ANON_KEY</code> e <code>SUPABASE_SERVICE_ROLE_KEY</code>. Depois reinicie o servidor.</p>
+          </div>
+        ) : (
+          <form method="POST" class="space-y-5">
+            {error && <div class="a-flash a-flash-err" role="alert">{error}</div>}
+            <div>
+              <label class="a-label" for="email">Utilizador ou e-mail</label>
+              <input class="a-input" id="email" name="email" type="text" required autocomplete="username" value={emailValue} />
+            </div>
+            <div>
+              <label class="a-label" for="password">Palavra-passe</label>
+              <input class="a-input" id="password" name="password" type="password" required autocomplete="current-password" />
+            </div>
+            <button class="a-btn a-btn-primary w-full !py-3">Entrar</button>
+            <p class="text-[12px] text-taupe leading-relaxed">
+              Para dar acesso a alguém: crie o utilizador em Supabase → Authentication e execute
+              <code class="text-mocha">update profiles set role='admin' where email='…';</code>
+            </p>
+          </form>
+        )}
       </div>
-      <button type="submit" class="btn">Entrar</button>
-    </form>
-  </div>
-</body>
+    </section>
+  </body>
 </html>
